@@ -48,10 +48,10 @@ Build application Docker image
 1. Navigate to the `google-k8s-workshop/sample-app` folder
 
     ```
-    $ cd google-k8s-workshop/sample-app
+    $ cd google-k8s-workshop-v2/sample-app
     ```
 
-    `google-k8s-workshop` repository should be cloned in the previous exercise.
+    `google-k8s-workshop-v2` repository should be cloned in the previous exercise.
 
 1. Set the `IMAGE` variable and build the Docker image
 
@@ -74,13 +74,43 @@ Build application Docker image
     * Runs all commands from the Dockerfile
     * Saves the container filesystem as a new Docker image  
 
-1. Push the image to the GCE container registry
+1. Push the image to the GCE Container Registry
     ```shell
     $ docker push $IMAGE
     ```
     No authentication is required because you are already authenticated by the Cloud Shell
 
 1. In GCP console open 'Container Registry' -> 'Images' and make sure that `sample-k8s-app` image is present
+
+Use Cloud Build to automatically build the container for you
+----------------------
+
+Cloud Build is a service that executes your builds on Google Cloud Platform infrastructure. Cloud Build can import source code from Google Cloud Storage, Cloud Source Repositories, GitHub, or Bitbucket, execute a build to your specifications, and produce artifacts such as Docker containers or Java archives.
+
+Now, instead of manually building the image and pushing it to the container registry, let's create a cloud build that will do this for us.
+
+1. In the `sample-app` folder create `cloudbuild.yaml` file with the following content.
+
+    ```
+    steps:
+    - name: 'gcr.io/cloud-builders/docker'
+      args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sample-k8s-app', '.' ]
+    images:
+    - 'gcr.io/$PROJECT_ID/sample-k8s-app'
+    ```
+
+    This is a Cloud Build configuration file that contains a single step: building the `sample-k8s-app` image. The build is taking place in a container that is created from `gcr.io/cloud-builders/docker` image. The command that we use to build our own image is almost identical to the one that we used in the previous exercise. The configuration file also contains `images` section. This section instructs the Cloud Build to push the specified image to the GCE Container Registry. 
+
+1. Submit the build
+
+    ```
+    gcloud builds submit --config cloudbuild.yaml .
+    ```
+
+1. In GCP console open 'Cloud Build' -> 'History' and verify that the build was successfully finished. 
+
+1. In GCP console open 'Container Registry' -> 'Images' and make sure that `sample-k8s-app` was recently updated. 
+
 
 Run application in the Cloud Shell
 ----------------------
@@ -153,6 +183,49 @@ Run application in the Cloud Shell
 
     You should be able to add notes in the bottom box. Notes were added to demonstrate how the app can handle persistent data (in our case we store them in the mysql database)
 
+
+Mount a persistent volume
+------------------------
+
+By default docker stores the container filesystem in a special folder on the host machine. This means that if a container is deleted its data will be lost. Let's verify this.
+
+1. Open application UI, scroll to the bottom and add a few notes.
+
+1. Stop the `db container`
+
+    ```
+    $ docekr stop db
+    ``` 
+
+    Because of the fact that we run `db` container with `--rm` option the container is automatically deleted after we stop it.
+
+1. Recreate the `db` container with a persistent volume
+
+    ```
+    $ docker run --rm \
+      --name db \
+      -v $HOME/mysql_data:/var/lib/mysql \
+      -e MYSQL_ROOT_PASSWORD=root \
+      -d mysql
+    ```
+
+1. Restart the `backend` app.
+
+    ```
+    $ docker stop backend
+    $ docker run --rm \
+      --name backend \
+      --link db:mysql \
+      -p 8081:8081 \
+      -d $IMAGE \
+      app -port=8081 -db-host=db -db-password=root
+
+    ```
+
+    This step is required because the backend app creates a new database on startup if it doesn't exist. 
+
+1. Make sure that now the data survives between db container restarts.
+
 1. Clean up
 
     ```shell
@@ -163,6 +236,29 @@ Run application in the Cloud Shell
 Optional Exercises
 -------------------
 
-### Use external volume for mysql container
+### Explore how docker networking works
 
-By default, mysql container stores its data inside the container file system. However, there is a possibility to store this data in a particular folder on the host and mount this folder to the container as a volume. Follow the instructions from the `Where to Store Data` section from the [mysql image documentation](https://hub.docker.com/_/mysql/) in order to do th at.
+1. Adopt the application to use docker host networking. Use [this](https://docs.docker.com/network/network-tutorial-host/) doc as an example how to use host networking. Make sure you delete `--link` and `-p` parameters and updated startup commands to use `localhost` instead of individual containers DNS names.  
+
+1. Use commands such as `ip addr show`, `ip route show` inside a container and on the Cloud Shell VM. Do this for containers running in both `bridge` and `host` modes. Make sure you understand how networking works in both cases. (You can use `iproute2` package to install ip utility on Ubuntu)
+
+### Examine docker filesystem
+
+1. Use `GraphDriver -> Data` property of the  `docker inspect` command output to figure out the location of a container filesystem.
+1. Refer to the [docker documentation](https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-the-overlay2-driver-works) to understand the structure of the `/var/lib/docker/overlay2` folder and how image layers are represented on the host.
+1. Read [How container reads and writes work with overlay or overlay2](https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-container-reads-and-writes-work-with-overlay-or-overlay2) from docker documentation. Then try to edit a file inside a container, make sure that the file was copied from the container lower directory to the upper directory.
+
+### Examine how docker uses cgroups to enforce container limits and isolation
+
+1. Run a container with a memory limit 
+    ```
+    docker run --rm -d -m 128MB --name mem_limit nginx
+    ```
+1. Use `docker ps` to get the container ID
+1. List all container cgroups 
+    ```
+    find  /sys/fs/cgroup/ -name "<container-id>*"
+    ```
+1. Find the one that has 'memory' in its path and navigate inside the cgroup folder.
+1. Open `memory.limit_in_bytes` file and compare it with the same file for a different container.
+
