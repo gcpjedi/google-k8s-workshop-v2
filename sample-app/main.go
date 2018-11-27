@@ -60,7 +60,8 @@ const dbName = "sample_app"
 
 func main() {
 	showversion := flag.Bool("version", false, "display version")
-	frontend := flag.Bool("frontend", false, "run in frontend mode")
+	mode := flag.String("mode", "frontend", "frontend|backend")
+	migrate := flag.Bool("run-migrations", false, "create db and run migrations")
 	port := flag.Int("port", 8080, "port to bind")
 	backend := flag.String("backend-service", "http://127.0.0.1:8081", "hostname of backend server")
 	dbHost := flag.String("db-host", "db", "hostname of DB server")
@@ -77,29 +78,37 @@ func main() {
 		fmt.Fprintf(w, "%s\n", version)
 	})
 
-	if *frontend {
+	if *mode == "frontend" {
 		frontendMode(*port, *backend)
-	} else {
+	} else if *mode == "backend" {
 		db, err := gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/mysql", *dbUser, *dbPassword, *dbHost))
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName)).Error
-		if err != nil {
-			log.Fatal(err)
-		}
-		db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", *dbUser, *dbPassword, *dbHost, dbName))
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = db.AutoMigrate(&Note{}).Error
-		if err != nil {
-			log.Fatal(err)
+		if *migrate {
+			err := createDbAndMigrate(db, *dbUser, *dbPassword, *dbHost)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 		defer db.Close()
 		backendMode(*port, db)
+	} else {
+		log.Fatal(fmt.Sprintf("Unknown mode: %s, should be either backend or frontend", *mode))
 	}
 
+}
+
+func createDbAndMigrate(db *gorm.DB, user, password, host string) error {
+	err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName)).Error
+	if err != nil {
+		return err
+	}
+	db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", user, password, host, dbName))
+	if err != nil {
+		return err
+	}
+	return db.AutoMigrate(&Note{}).Error
 }
 
 func backendMode(port int, db *gorm.DB) {
