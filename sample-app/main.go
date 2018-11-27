@@ -86,7 +86,7 @@ func main() {
 			log.Fatal(err)
 		}
 		if *migrate {
-			err := createDbAndMigrate(db, *dbUser, *dbPassword, *dbHost)
+			db, err = createDbAndMigrate(db, *dbUser, *dbPassword, *dbHost)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -99,16 +99,16 @@ func main() {
 
 }
 
-func createDbAndMigrate(db *gorm.DB, user, password, host string) error {
+func createDbAndMigrate(db *gorm.DB, user, password, host string) (*gorm.DB, error) {
 	err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName)).Error
 	if err != nil {
-		return err
+		return db, err
 	}
 	db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", user, password, host, dbName))
 	if err != nil {
-		return err
+		return db, err
 	}
-	return db.AutoMigrate(&Note{}).Error
+	return db, db.AutoMigrate(&Note{}).Error
 }
 
 func backendMode(port int, db *gorm.DB) {
