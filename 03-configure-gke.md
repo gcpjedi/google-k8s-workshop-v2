@@ -218,3 +218,44 @@ kubectl get nodes
 
 ## Deploy an IP Alias cluster
 
+## Create a new node-pool and drain all pods into it
+
+```
+gcloud container node-pools create new \
+  --enable-autoupgrade \
+  --node-version 1.11.2-gke.18 \
+  --num-nodes 3 \
+  --cluster gke-workshop-2
+```
+
+In another terminal watch the stream of events from the nodes.
+
+```
+$ kubectl get nodes --watch
+```
+
+When the new nodepool nodes are in `Ready` state
+
+```
+gcloud container node-pools delete outdated --cluster gke-workshop --async
+```
+
+Google Kubernetes engine does several operations under the hood to ensure Pods are evicted from the NodePool and running on a new node. Let's see the process step-by-step.
+
+```
+# cordon the node so no new Pods will be scheduled
+kubectl cordon gke-gke-workshop-default-pool-33b6dfeb-t7n3 --ignore-daemonsets
+
+# drain the node to evict all the Pods from it
+k drain gke-gke-workshop-default-pool-33b6dfeb-t7n3 --ignore-daemonsets
+```
+
+Repeate with other nodes from the `default-pool`.
+
+Delete the NodePool which has no active Pods running.
+
+```
+gcloud container node-pools delete default-pool --cluster gke-workshop
+```
+
+Now you should see only Nodes from a node-pool `new`.
