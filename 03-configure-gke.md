@@ -183,3 +183,38 @@ kubectl get deploy --watch
 ```
 
 Go to the Google Cloud console and see how Cluster Autoscaler creates a new node for the cluster. After node is provisioned the remaining pod is started.
+
+Delete `gke-workshop-1` after verifying that GKE restored the deleted node from the previous experiment.
+
+## Enable auto upgrade
+
+GKE may upgrade Nodes version to the latest stable one automatically. To do so create a cluster with `--enable-autoupgrade` option. Automatic upgrades occur at regular intervals.
+
+```
+gcloud container node-pools create outdated \
+  --enable-autoupgrade \
+  --node-version 1.9.7-gke.11 \
+  --num-nodes 1 \
+  --cluster gke-workshop-2
+```
+
+```
+kubectl get nodes
+```
+
+Now upgrade the node pool manually to the version of the master. Remeber, automatic upgrades happen based on schedule not immediately.
+
+```
+gcloud container clusters upgrade gke-workshop \
+  --node-pool outdated \
+  --cluster-version 1.11.2
+```
+
+Verify all nodes are runninhg the latest version.
+
+```
+kubectl get nodes
+```
+
+## Deploy an IP Alias cluster
+
