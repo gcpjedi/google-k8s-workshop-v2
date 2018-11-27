@@ -127,3 +127,59 @@ gcloud compute instances delete gke-gke-workshop-1-default-pool-1ffc4f39-6ml3
 ```
 
 Let's wait about 10 minutes to see if the node comes back.
+
+## Enable and test auto-scaling
+
+One of the major benefits of the cloud is its elasticity. You allocate resources only when you need them. GKE supports this model with autoscaler.
+
+```
+gcloud container clusters create gke-workshop-2 \
+--cluster-version 1.11.2 \
+--zone europe-west1-d \
+--num-nodes 2 \
+--enable-autoscaling \
+--min-nodes 1 \
+--max-nodes 4 \
+--labels=project=gke-workshop-2 \
+--enable-autorepair
+```
+
+```
+gcloud container clusters get-credentials gke-workshop-2 
+```
+
+Now create a workload. How about 5 nginx containers each requesting 1 Gb of memory?
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.15.6
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "100m"
+        ports:
+        - containerPort: 80
+```
+
+Let's see how this workload is scheduled. 4 pods are scheduled to the nodes, and one is unscheduled.
+
+```
+kubectl get deploy --watch
+```
+
+Go to the Google Cloud console and see how Cluster Autoscaler creates a new node for the cluster. After node is provisioned the remaining pod is started.
