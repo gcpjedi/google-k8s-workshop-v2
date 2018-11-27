@@ -259,3 +259,7 @@ gcloud container node-pools delete default-pool --cluster gke-workshop
 ```
 
 Now you should see only Nodes from a node-pool `new`.
+
+## Use preemptible node-pools
+
+## Add a node pool with accelerator
