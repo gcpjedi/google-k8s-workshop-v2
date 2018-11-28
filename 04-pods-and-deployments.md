@@ -268,16 +268,16 @@ One major problem with our curent deployment is that we hardcode mysql root pass
     ```
     Here we are telling kubernetes to get the value for the MYSQL_ROOT_PASSWORD from the secret with name mysql. Each secret can have multiple key value pairs, in our case we get the value from the password key.
 
-1. Add exactly the same `env` section to the `manifests/backend-pod.yml`
+1. Add exactly the same `env` section to the `manifests/backend.yml`
 
-1. Modify the startup command in the `manifests/backend-pod.yml` file 
+1. Modify the startup command in the `manifests/backend.yml` file 
 
     ```
-    command: ["sh", "-c", "app -mode=backend -run-migrations -port=8080 -db-host=<REPLACE_WITH_MYSQL_IP> -db-password=$MYSQL_ROOT_PASSWORD" ]
+    command: ["sh", "-c", "app -mode=backend -run-migrations -port=8080 -db-host=db -db-password=$MYSQL_ROOT_PASSWORD" ]
     ```
     As you can see, here we call `sh` instead of calling our app directly. Shell is required to do environment variable substitution for us. Also we use $MYSQL_ROOT_PASSWORD instead of hardcoded password.
 
-1. Redeploy the backend and database. The database pod should be redeployed first, because the backend creates an empty database on startup and this database will be destroyed if you redeploy the database after the backend. Note, that you will not be able to use `kubectl apply` command this time. Instead you should use `kubectl delete` first and then redeploy pod. Pod ip addresses may change so you will have to update all 3 deployment files. 
+1. Redeploy the backend and database. The database pod should be redeployed first, because the backend creates an empty database on startup and this database will be destroyed if you redeploy the database after the backend. Note, that you will not be able to use `kubectl apply` command this time. Instead you should use `kubectl delete` first and then redeploy pod.  
 
 1. Make sure that the app is still working fine.
 
@@ -286,19 +286,29 @@ Use sidecars and init containers
 
 On startup our sample application creates a database for itself if it doesn't exist and run migrations. However, usually we want to externalize such tasks from the application pod. We can use init containers to do that. 
 
+First, let's verify that the app will fail if we restart the db.
+
+1. Delete and recreate the db pod 
+
+1. Open the app UI you should see the following error `Error 1049: Unknown database 'sample_app'`
+
+Now let's fis the error by allowing the database pod to run migrations each time it is recreated.
+
 1. Add the following section to the 'manifests/db.yml'
     ```
-    initContainers:
-    - name: init-myservice
-      image: <REPLACE_WITH_YOUR_OWN_IMAGE>
-      env:
-      - name: MYSQL_ROOT_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: mysql
-            key: password
-      command: ["sh", "-c", "app -run-migrations -port=8080 -db-host=<REPLACE_WITH_MYSQL_IP> -db-password=$MYSQL_ROOT_PASSWORD" ]
+      initContainers:
+      - name: init-myservice
+        image: <REPLACE_WITH_YOUR_OWN_IMAGE>
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql
+              key: password
+        command: ["sh", "-c", "app -run-migrations -port=8080 -db-host=db -db-password=$MYSQL_ROOT_PASSWORD" ]
     ```
     You can append this lines directly to the end of the file. `initContainers` section should be aligned with the same number of spaces as `containers` section    
 
-1. Remove `-run-migrations` command from  the backend startup command
+1. Recreate the db pod.
+
+1. Make sure the app is working fine. 

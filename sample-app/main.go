@@ -60,7 +60,7 @@ const dbName = "sample_app"
 
 func main() {
 	showversion := flag.Bool("version", false, "display version")
-	mode := flag.String("mode", "frontend", "frontend|backend")
+	mode := flag.String("mode", "", "frontend|backend")
 	migrate := flag.Bool("run-migrations", false, "create db and run migrations")
 	port := flag.Int("port", 8080, "port to bind")
 	backend := flag.String("backend-service", "http://127.0.0.1:8081", "hostname of backend server")
@@ -93,6 +93,16 @@ func main() {
 		}
 		defer db.Close()
 		backendMode(*port, db)
+	} else if *mode == "" && *migrate {
+		db, err := gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/mysql", *dbUser, *dbPassword, *dbHost))
+		if err != nil {
+			log.Fatal(err)
+		}
+		db, err = createDbAndMigrate(db, *dbUser, *dbPassword, *dbHost)
+		if err != nil {
+			log.Fatal(err)
+		}
+		db.Close()
 	} else {
 		log.Fatal(fmt.Sprintf("Unknown mode: %s, should be either backend or frontend", *mode))
 	}
