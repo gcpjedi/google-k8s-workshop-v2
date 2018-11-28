@@ -26,6 +26,20 @@ gcloud container clusters create gke-workshop-0 --zone europe-west1-d
 
 It will take ~4 minutes for Google cloud to create a cluster for you.
 
+After the cluster is ready you can get its credentials using the following command.
+
+```
+$ gcloud container clusters get-credentials gke-workshop-0
+```
+
+Now you can use `kubectl` utility to connect to the cluster. For example, let's verify that the cluster is up and runnig by listing its nodes
+
+```
+$ kubectl get nodes
+```
+
+This command should display all cluster nodes. In GCP console open 'Compute Engine' -> 'VM instances' to verify that each node has a corresponding VM.
+
 ## List and describe cluster operations
 
 Check what operations are available for the cluster:
