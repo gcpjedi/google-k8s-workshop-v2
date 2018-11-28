@@ -277,3 +277,37 @@ Now you should see only Nodes from a node-pool `new`.
 ## Use preemptible node-pools
 
 ## Add a node pool with accelerator
+
+## Run GKE cluster
+
+At the end of the exercise please delete all Kubernetes clusters and create one using these commands. This will ensure that all have the same configuration during the training.
+
+```
+gcloud config set container/new_scopes_behavior true
+```
+
+```
+gcloud container clusters create gke-workshop \
+--cluster-version 1.11.2 \
+--zone europe-west1-d \
+--num-nodes 4 \
+--machine-type n1-standard-2 \
+--labels=project=gke-workshop \
+--image-type COS \
+--enable-autorepair \
+--no-enable-basic-auth \
+--no-issue-client-certificate \
+--enable-ip-alias \
+--metadata disable-legacy-endpoints=true \
+--no-enable-legacy-authorization
+```
+
+```
+gcloud container clusters get-credentials gke-workshop --zone europe-west1-d
+```
+
+```
+kubectl create clusterrolebinding cluster-admin-binding \
+  --clusterrole=cluster-admin \
+  --user="$(gcloud config get-value core/account)"
+```
