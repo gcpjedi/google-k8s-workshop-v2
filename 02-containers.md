@@ -142,7 +142,7 @@ Run application in the Cloud Shell
       --link db:mysql \
       -p 8081:8081 \
       -d $IMAGE \
-      app -port=8081 -db-host=db -db-password=root
+      app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root
     ```
 
     `--link db:mysql` [links](https://docs.docker.com/network/links/) the backend container to the database container
@@ -161,7 +161,7 @@ Run application in the Cloud Shell
       --link backend \
       -p 8080:8080 \
       -d $IMAGE \
-      app  -frontend=true -backend-service=http://backend:8081
+      app -mode=frontend -backend-service=http://backend:8081
     ```
 
     Here we run the same executable but now we provide `-frontend=true` parameter which instructs the app to run in frontend mode. We also provide the connection string to that backend.
