@@ -27,6 +27,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"github.com/jinzhu/gorm"
@@ -63,6 +64,7 @@ func main() {
 	showversion := flag.Bool("version", false, "display version")
 	mode := flag.String("mode", "", "frontend|backend")
 	migrate := flag.Bool("run-migrations", false, "create db and run migrations")
+	delay := flag.Int("delay", 0, "number of seconds to sllep on before start")
 	port := flag.Int("port", 8080, "port to bind")
 	backend := flag.String("backend-service", "http://127.0.0.1:8081", "hostname of backend server")
 	dbHost := flag.String("db-host", "db", "hostname of DB server")
@@ -73,6 +75,10 @@ func main() {
 	if *showversion {
 		fmt.Printf("Version %s\n", version)
 		return
+	}
+
+	if *delay != 0 {
+		time.Sleep(time.Duration(*delay) * time.Second)
 	}
 
 	http.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {

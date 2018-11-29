@@ -6,7 +6,6 @@ Module objectives
 
 - Convert pod to a deployment
 - Scale/update/rollout/rollback the deployment
-- Verify that individual pods in a deployment are restarted after failures
 - Define custom health checks and livenes probes
 - Use horizontal and vertical pod autoscaler and verify it works correctly
 - Use jobs and cronjobs to schedule task execution
@@ -94,3 +93,44 @@ Scale/update/rollout/rollback the deployment
 1. Edit `manifests/backend.yml` update number of replicas to 3 and apply changes.
 
 1. In your browser refresh the application several times. Make sure that 'Container IP' field sometimes changes. This indicates that request comes to a different backend instance.
+
+1. Edit `sample-app/main.go` file. At line 59 change `version` variable to `1.0.1` and save the file.
+
+1. Rebuild container image with a new tag.
+    ```
+    $ export IMAGE=gcr.io/$PROJECT_ID/sample-k8s-app:1.0.1 
+    $ docker build . -t $IMAGE
+    $ docker push $IMAGE
+    ```
+1. Update `manifests/backend.yml` to use the new version of the container image and apply the changes.
+
+1. Run the following command to watch how the pods are rolled out in a real time.
+
+    ```
+    $ watch kubectl get pod 
+    ```
+
+1. Open the application in the browser and make sure the backend version is updated.
+
+1. Run the following command to view the deployment rollout history 
+    ```
+    $ kubectl rollout history deployment/backend
+    deployments "backend"
+    REVISION  CHANGE-CAUSE
+    1         <none>
+    2         <none>
+    3         <none>
+    ```
+
+1. Rollback to the previous revisions
+
+    ```
+    $ kubectl rollout undo deployment/backend
+    ```
+
+1. Make sure the application now shows version `1.0.0` instead of `1.0.1`
+
+Define custom health checks and livenes probes
+----------------------------------------------
+
+By default kubernetes asumes that 
