@@ -426,10 +426,8 @@ Now let's try to prevent the pod from consuming as much memory as it wants.
         resources:
           limits:
             memory: "800Mi"
-            cpu: "800m"
           requests:
             memory: "600Mi"
-            cpu: "400m"
     ```
     We are defining resource limits for all containers individually, so this element should go under `spec -> containers[name=backend]` and should be aligned together with `image` and `command` properties
 

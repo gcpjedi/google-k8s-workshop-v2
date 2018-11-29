@@ -34,19 +34,20 @@ import (
 )
 
 type Instance struct {
-	Id         string
-	Name       string
-	Version    string
-	Hostname   string
-	Zone       string
-	Project    string
-	InternalIP string
-	ExternalIP string
-	LBRequest  string
-	ClientIP   string
-	Local      bool
-	Notes      []string
-	Error      string
+	Id          string
+	Name        string
+	Version     string
+	Hostname    string
+	Zone        string
+	Project     string
+	ContainerIP string
+	InternalIP  string
+	ExternalIP  string
+	LBRequest   string
+	ClientIP    string
+	Local       bool
+	Notes       []string
+	Error       string
 }
 
 type Note struct {
@@ -289,6 +290,7 @@ func newInstance(db *gorm.DB) *Instance {
 	i.Name = a.assign(metadata.InstanceName)
 	i.Hostname = a.assign(metadata.Hostname)
 	i.Project = a.assign(metadata.ProjectID)
+	i.ContainerIP = GetOutboundIP().String()
 	i.InternalIP = a.assign(metadata.InternalIP)
 	i.ExternalIP = a.assign(metadata.ExternalIP)
 	i.Version = version
