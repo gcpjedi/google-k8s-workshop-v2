@@ -169,14 +169,14 @@ func frontendMode(port int, backendURL string) {
 	}
 	tpl := template.Must(template.New("out").Parse(string(html)))
 
-	transport := http.Transport{DisableKeepAlives: false}
+	transport := http.Transport{DisableKeepAlives: true}
 	client := &http.Client{Transport: &transport}
 	req, _ := http.NewRequest(
 		"GET",
 		backendURL,
 		nil,
 	)
-	req.Close = false
+	req.Close = true
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		i := &Instance{}
