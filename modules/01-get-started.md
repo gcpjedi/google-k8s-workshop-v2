@@ -96,9 +96,9 @@ Console is the UI tool for managing cloud resources. Most of the exercises in th
 
 Click "Activate Cloud Shell" button in the top right corner.
 
-  ![](docs/img/cloud-shell.png)
+  ![](img/cloud-shell.png)
 
-  ![](docs/img/cloud-shell-prompt.png)
+  ![](img/cloud-shell-prompt.png)
 
 Now click "Launch the editor" button.
 
