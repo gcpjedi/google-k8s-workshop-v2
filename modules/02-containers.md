@@ -1,16 +1,13 @@
-Containers
-==========
+# Containers
 
-Module objectives
------------------
+## Module objectives
 
 1. Build application Docker image
 1. Run application locally
 
 ---
 
-The sample app
---------------
+## The sample app
 
 You'll use a very simple sample application—`gceme`—as the basis for your CD pipeline. `gceme` is written in Go and is located in the `sample-app` directory in this repo. When you run the `gceme` binary on a GCE instance, it displays the instance's metadata in a card:
 
@@ -40,8 +37,7 @@ Both the frontend and backend modes of the application support two additional UR
 
 A deployment is a supervisor for pods and replica sets, giving you fine-grained control over how and when a new pod version is rolled out as well as rolled back to a previous state.
 
-Build application Docker image
-------------------------------
+## Build application Docker image
 
 1. Open the GCP console from your browser. [GCP Console](https://console.cloud.google.com/) and open the Cloud Shell.
 
@@ -82,8 +78,7 @@ Build application Docker image
 
 1. In GCP console open 'Container Registry' -> 'Images' and make sure that `sample-k8s-app` image is present
 
-Use Cloud Build to automatically build the container for you
-----------------------
+## Use Cloud Build to automatically build the container for you
 
 Cloud Build is a service that executes your builds on Google Cloud Platform infrastructure. Cloud Build can import source code from Google Cloud Storage, Cloud Source Repositories, GitHub, or Bitbucket, execute a build to your specifications, and produce artifacts such as Docker containers or Java archives.
 
@@ -99,12 +94,12 @@ Now, instead of manually building the image and pushing it to the container regi
     - 'gcr.io/$PROJECT_ID/sample-k8s-app'
     ```
 
-    This is a Cloud Build configuration file that contains a single step: building the `sample-k8s-app` image. The build is taking place in a container that is created from `gcr.io/cloud-builders/docker` image. The command that we use to build our own image is almost identical to the one that we used in the previous exercise. The configuration file also contains `images` section. This section instructs the Cloud Build to push the specified image to the GCE Container Registry. 
+    This is a Cloud Build configuration file that contains a single step: building the `sample-k8s-app` image. The build is taking place in a container that is created from `gcr.io/cloud-builders/docker` image. The command that we use to build our own image is almost identical to the one that we used in the previous exercise. The configuration file also contains `images` section. This section instructs the Cloud Build to push the image to the GCE Container Registry. 
 
 1. Submit the build
 
     ```
-    gcloud builds submit --config cloudbuild.yaml .
+    $ gcloud builds submit --config cloudbuild.yaml .
     ```
 
 1. In GCP console open 'Cloud Build' -> 'History' and verify that the build was successfully finished. 
@@ -112,8 +107,7 @@ Now, instead of manually building the image and pushing it to the container regi
 1. In GCP console open 'Container Registry' -> 'Images' and make sure that `sample-k8s-app` was recently updated. 
 
 
-Run application in the Cloud Shell
-----------------------
+## Run application in the Cloud Shell
 
 1. Run database container
 
@@ -132,7 +126,7 @@ Run application in the Cloud Shell
 
     `--name db` sets the name of the container which you can refer to from other commands
 
-    `--rm` tells Docker to delete the container as soon as it is stopped or the root process inside container finishes execution
+    `--rm` tells Docker to delete the container as soon as it is stopped or the root process inside the container finishes execution
 
 1. Run the backend container
 
@@ -149,9 +143,9 @@ Run application in the Cloud Shell
 
     `-p 8081:8081` expose port 8081 from the container as port `8081` on the host
 
-    `$IMAGE` use image we build earlier for the sample app
+    `$IMAGE` tells docker to use image we build earlier for the sample app
 
-    `app -port=8081 -db-host=db -db-password=root` application start command. `app` is the executable file that we build and package inside the container previously. In parameters, we specify that the app should listen at port `8081` and how it can connect to the database.
+    `app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root` is the application start command. `app` is the executable file that we build and package inside the container previously. In parameters, we specify that the app should listen at port `8081` and how it can connect to the database.
 
 1. Run the frontend container
 
@@ -164,7 +158,7 @@ Run application in the Cloud Shell
       app -mode=frontend -backend-service=http://backend:8081
     ```
 
-    Here we run the same executable but now we provide `-frontend=true` parameter which instructs the app to run in frontend mode. We also provide the connection string to that backend.
+    Here we run the same executable but now we provide `-mode=frontend` parameter which instructs the app to run in frontend mode. We also provide the connection string to that backend.
 
 1. Verify that all containers are running
 
@@ -175,7 +169,7 @@ Run application in the Cloud Shell
     684113a1910f        lexsys27/sample-k8s-app   "app -port=8081 -db-…"   21 seconds ago       Up 19 seconds       0.0.0.0:8081->8081/tcp   backend
     dd3bacf6e0f0        mysql                     "docker-entrypoint.s…"   About a minute ago   Up About a minute   3306/tcp, 33060/tcp      db
     ```
-1. Click on the `Web preview` button in you Cloud Shell and then select `Preview on port: 8080` This will expose the app to your local machine from the Cloud Shell. See this [link](https://cloud.google.com/shell/docs/using-web-preview) for more details about web preview.
+1. Click on the `Web preview` button in you Cloud Shell and then select `Preview on port: 8080` This will allow you to connect to the app from your local machine. See this [link](https://cloud.google.com/shell/docs/using-web-preview) for more details about web preview.
 
 1. Check that the app is working
 
@@ -184,22 +178,21 @@ Run application in the Cloud Shell
     You should be able to add notes in the bottom box. Notes were added to demonstrate how the app can handle persistent data (in our case we store them in the mysql database)
 
 
-Mount a persistent volume
-------------------------
+## Mount a persistent volume
 
-By default docker stores the container filesystem in a special folder on the host machine. This means that if a container is deleted its data will be lost. Let's verify this.
+By default docker stores a container filesystem in a certain folder on the host machine. This means that if a container is deleted its data will be lost. Let's verify this.
 
 1. Open application UI, scroll to the bottom and add a few notes.
 
-1. Stop the `db container`
+1. Stop `db container`
 
     ```
-    $ docekr stop db
+    $ docker stop db
     ``` 
 
     Because of the fact that we run `db` container with `--rm` option the container is automatically deleted after we stop it.
 
-1. Recreate the `db` container with a persistent volume
+1. Recreate `db` container with a persistent volume
 
     ```
     $ docker run --rm \
@@ -218,27 +211,19 @@ By default docker stores the container filesystem in a special folder on the hos
       --link db:mysql \
       -p 8081:8081 \
       -d $IMAGE \
-      app -port=8081 -db-host=db -db-password=root
-
+      app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root
     ```
 
     This step is required because the backend app creates a new database on startup if it doesn't exist. 
 
 1. Make sure that now the data survives between db container restarts.
 
-1. Clean up
 
-    ```shell
-    $ docker stop $(docker ps -aq)
-    $ docker rm $(docker ps -aq)
-    ```
-
-Optional Exercises
--------------------
+## Optional Exercises
 
 ### Explore how docker networking works
 
-1. Adopt the application to use docker host networking. Use [this](https://docs.docker.com/network/network-tutorial-host/) doc as an example how to use host networking. Make sure you delete `--link` and `-p` parameters and updated startup commands to use `localhost` instead of individual containers DNS names.  
+1. Adopt the application to use docker host networking. Use [this](https://docs.docker.com/network/network-tutorial-host/) doc as an example how to use host networking. Make sure you delete `--link` and `-p` parameters and update startup commands to use `localhost` instead of individual containers DNS names.  
 
 1. Use commands such as `ip addr show`, `ip route show` inside a container and on the Cloud Shell VM. Do this for containers running in both `bridge` and `host` modes. Make sure you understand how networking works in both cases. (You can use `iproute2` package to install ip utility on Ubuntu)
 
@@ -262,3 +247,8 @@ Optional Exercises
 1. Find the one that has 'memory' in its path and navigate inside the cgroup folder.
 1. Open `memory.limit_in_bytes` file and compare it with the same file for a different container.
 
+## Clean up
+
+```shell
+$ docker stop $(docker ps -aq)
+```
