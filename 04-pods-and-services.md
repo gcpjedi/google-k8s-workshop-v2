@@ -1,8 +1,6 @@
-Pods and Deployments
-=============
+# Pods and Deployments
 
-Module objectives
------------------
+## Module objectives
 
 1. Deploy the sample app to Kubernetes using pods
 1. Use services and service discovery
@@ -14,8 +12,7 @@ Module objectives
 
 ---
 
-Deploy the sample app to Kubernetes using pods
----------------------------------------------
+## Deploy the sample app to Kubernetes using pods
 
 In this section, you will deploy the mysql database, `gceme` frontend and backend to Kubernetes using Kubernetes manifest files that describe the environment that the `gceme` binary/Docker image will be deployed to. They use the `gceme` Docker image that you've built in one of the previous modules.
 
@@ -109,8 +106,7 @@ In this section, you will deploy the mysql database, `gceme` frontend and backen
     curl <backend-ip>:8080
     curl <frontend-ip>
 
-Use services and service discovery
----------------------------------
+## Use services and service discovery
 
 In the previous exercise, we manually copied IP addresses to connect pods. This is not only inconvenient - this will prevent your pods from reconnecting in case of failers because after a pod is restarted its IP address changes. Also in our current setup it is impossible to load balance the traffic between multiple instances of the backend pod. Services will help us to fix all of the above-mentioned issues.
 
@@ -188,8 +184,7 @@ In the previous exercise, we manually copied IP addresses to connect pods. This 
 1. SSH to a worker node and check that the app is working.
 
 
-Use LoadBalancer services
----------------------------
+## Use LoadBalancer services
 
 Next thing we have to do is to expose the app to the external world. We can use the service of type LoadBalancer in order to do that.
 
@@ -239,8 +234,7 @@ Next thing we have to do is to expose the app to the external world. We can use 
 
 
 
-Use Secrets and ConfigMaps to externalize application credentials and configuration
------------------------------------------------------------------------------------
+## Use Secrets and ConfigMaps to externalize application credentials and configuration
 
 One major problem with our current deployment is that we hardcode mysql root password in the pod configuration file. Usually, we want to externalize secrets and configuration from the kubernetes object definition. We can use secrets and config maps to do that.
 
@@ -277,8 +271,7 @@ One major problem with our current deployment is that we hardcode mysql root pas
 
 1. Make sure that the app is still working fine.
 
-Use sidecars and init containers
---------------------------------
+## Use sidecars and init containers
 
 On startup our backend pod creates a database for itself if it doesn't exist and run migrations. However, usually we want to externalize such tasks from the application pod. We can use init containers to do that. 
 
@@ -313,8 +306,7 @@ Now let's fis the error by allowing the backend pod to run migrations each time 
 
 1. Make sure the app is working fine. 
 
-Use pod/node affinity and anti-affinity
-----------------------------------------
+## Use pod/node affinity and anti-affinity
 
 By default the kubernetes scheduler is doing a great job by trying to evnly distribute pods between nodes, taking into consideration current node resource utilization as well as other criteria. But there are situations when you want to influence how pods are placed. For example, let's imagine that we want all our 3 pods to be colocated on a single node (this could make sense if we care more about performance than high availability) But we don't want to pick a particular node - instead we prefer the scheduler to do this for us. We also don't want this rule to be very strict - if there is not such a node that rave enough resources to host all of our pods we want to allow the scheduler to break this rule and put pods to different nodes. This is a kind of rule that can be expressed using [node/pod affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
 
@@ -364,8 +356,7 @@ By default the kubernetes scheduler is doing a great job by trying to evnly dist
     frontend   1/1       Running   0          5m        10.48.1.31   gke-gke-workshop-0-default-pool-c70d26ac-gvpw
     ```
 
-Set pod limits
---------------
+## Set pod limits
 
 Currently, all our pods can consume as many resources as they want. This is rarely a good idea, because in this case your pods can influence somebody else's workloads. First, let's verify that right now this is the case.
 
@@ -443,8 +434,7 @@ Now let's try to prevent the pod from consuming as much memory as it wants.
     stress: FAIL: [226] (451) failed run completed in 1s
     ```
 
-Optional Exercises
--------------------
+## Optional Exercises
 
 ### Use sidecar containers 
 
