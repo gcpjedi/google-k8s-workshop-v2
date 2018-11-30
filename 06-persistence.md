@@ -4,7 +4,7 @@
 
 1. Use persistent volumes to store persistent data, map the volume to the container
 1. Convert persisten volume to persistent volume claim
-1. Create storage classes
+1. Create a storage classes
 1. Use statefull set to deploy a mysql galera cluster
 
 ## Use persistent volume to store data
@@ -142,3 +142,67 @@ Persistent volume claim automates disk provisioning.
     ```
 
 1. Go to frontend and verify the previous notes are gone. That mean you use a new disk to store data.
+
+## Create a storage class
+
+Google cloud offers several disk types. They differ based on performance, reliability and price. How can I use particular disk type for Kubernetes workloads?
+
+Kubernetes defines resource type called StorageClass. By specifying StorageClass in you PVCs you can provision different disk types.
+
+1. Create a storage class that uses SSDs
+
+    ```yaml
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: ssd
+    provisioner: kubernetes.io/gce-pd
+    parameters:
+      type: pd-ssd
+    ```
+
+    `type: pd-ssd` tells `gce-pd` provisioner to create an SSD disk instead of standard one.
+
+1. Apply coniguration
+
+    ```shell
+    kubectl apply -f manifests/storage-class.yaml
+    ```
+
+1. Verify the StorageClass was created
+
+    ```shell
+    $ kubectl get storageClass
+    NAME                 PROVISIONER            AGE
+    ssd                  kubernetes.io/gce-pd   5m
+    standard (default)   kubernetes.io/gce-pd   1h
+    ```
+
+1. Now create PVC that uses this class
+
+    ```yaml
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: fast-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 50Gi
+      storageClassName: ssd
+    ```
+
+    ```shell
+    kubectl apply -f manifests/pcv-fast.yaml
+    ```
+
+    ```shell
+    $ kubectl get pvc
+    NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+    dynamic-data   Bound    pvc-5c3004bd-f476-11e8-aef3-42010a840052   50Gi       RWO            standard       38m
+    fast-data      Bound    pvc-eaac23d7-f47a-11e8-aef3-42010a840052   50Gi       RWO            ssd            5m
+    ```
+
+1. The last step is to change PVC reference from the database Pod and update the deployment. Please do this by yourself.
