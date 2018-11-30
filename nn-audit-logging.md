@@ -28,7 +28,7 @@ View container logs
 
 1. Switch to advanced mode
 
-    ![](img/logging-advanced-filter.png)
+    ![Advanced filter](img/logging-advanced-filter.png)
 
 1. Edit the filter
 
@@ -43,34 +43,56 @@ View container logs
 
     While editing the filter, you can use auto competition ("Control+Space") to explore possible options.
 
-1. Find the record that shows frontend app was started and ready to serve requests
+1. Find the record that shows backend container was started and ready to serve requests
 
-    View system logs
+    The line container prints is "Operating in backend mode..."
 
-1. Switch back to basic mode
+    The message goes to the `textPayload` field.
 
-1. Select "GKE Cluster Operations -> gke-workshop"
+    Operator `include` is `:`
 
-1. Find the record that tells you which node db master pod was scheduled
+    Prepare the filter statement yourself.
 
-You can convert the filter to advanced mode and look at it:
+1. Write a filter for audit operations on cluster
 
-```shell
-resource.type="gke_cluster"
-resource.labels.cluster_name="gke-workshop"
-```
+    ```json
+    resource.type=gke_cluster
+    resource.labels.cluster_name="gke-workshop"
+    protoPayload.@type:AuditLog
+    ```
 
-View platform events
---------------------
+    It will show you when cluster was created.
 
-You can view the events Google cloud associate with your cluster.
+    Delete the second line. Now you will see operations for all the clusters in the account.
 
-1. Select "GKE Cluster Operations -> gke-workshop"
+1. Some other interesting `resource.type` to explore are `k8s_cluster`, `k8s_node` and `k8s_pod`.
 
-1. Select log type: "activity"
+Setup alert
+-----------
 
-1. Find the record which tells you when the cluster was started.
+In this exercise you will setup alert on new pod started. The alert is sent only if pod was started in the namespace named `vip` (Very Importnat Pod).
 
-## Setup alert
+1. Select log messages that are associated with this event
 
-In this exercise you will setup alert on new pod started. The alert is sent only if pod has label `status=vip` (Very Importnat Pod).
+    ```txt
+    resource.type=k8s_pod
+    jsonPayload.message="Started container"
+    jsonPayload.metadata.namespace="vip"
+    ```
+
+    No messages - as there is no such namespace yet!
+
+1. Let's create such a namespace
+
+    ```shell
+    $ kubectl create ns vip
+    namespace/vip created
+    ```
+
+1. Now start `nginx` pod and verify that message arrived to Stackdriver
+
+    ```shell
+    kubectl run nginx --image=nginx --namespace=vip
+    ```
+
+-- didn't manage to get log-based alert metrcis for me
