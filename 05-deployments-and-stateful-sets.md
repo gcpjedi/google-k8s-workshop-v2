@@ -269,3 +269,164 @@ Sometimes there is a need to run one-off tasks. You can use pods to do that, but
     $ kubectl delete cronjob backup
     ```
 
+## Converting mysql deployment to a statefull set
+
+When you are using deployments to manage your pods it is very easy to scale stateless applications, like our backend and frontend, but scaling statefull applications is more difficult. If you want to scale a mysql database you have to start the first node in a bootstrap mode, then you have to wait until this node is redy and finally you have to start all other nodes and add them to the cluster. If you try to use deployment to scale your database it will create 3 instances of the database pod simultaneously and you will not be able to create a cluster. Statefull Set is the right object to do such kund of deployment. Now let's use a Statefull Set to convert our mysql pod to a 3-node galera mysql cluster.  
+
+1. In the `sample-app` folder create a subfolder `mysql-galera`
+
+1. Inside `mysql-galera` folder create a Dockerfile with the following content 
+
+    ```
+    FROM ubuntu:16.04
+    ENV DEBIAN_FRONTEND noninteractive
+
+    RUN apt-get update
+    RUN apt-get install -y software-properties-common
+    RUN apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 BC19DDBA
+    RUN add-apt-repository 'deb http://releases.galeracluster.com/mysql-wsrep-5.7/ubuntu xenial main'
+    RUN add-apt-repository 'deb http://releases.galeracluster.com/galera-3/ubuntu xenial main'
+    RUN apt-get update
+    RUN apt-get install -y galera-3 galera-arbitrator-3 mysql-wsrep-5.7 rsync lsof host
+    COPY my.cnf /etc/mysql/my.cnf
+    COPY start.sh  /start.sh
+    ENTRYPOINT ["/start.sh"]
+    ```
+
+    This dockerfile simply installs Galera using the Codership repository and copies the my.cnf start.sh over.  
+
+1. Add `my.cnf` file to the `mysql-galera` folder
+
+    ```
+    [mysqld]
+    user = mysql
+    bind-address = 0.0.0.0
+    wsrep_provider = /usr/lib/galera/libgalera_smm.so
+    wsrep_sst_method = rsync
+    default_storage_engine = innodb
+    binlog_format = row
+    innodb_autoinc_lock_mode = 2
+    innodb_flush_log_at_trx_commit = 0
+    query_cache_size = 0
+    query_cache_type = 0
+    ```
+    This file configures galera replication.
+
+1. Add `start.sh` file to the `mysql-galera` folder. 
+
+    ```
+    #!/bin/bash
+
+    mkdir /var/run/mysqld
+    chown mysql:mysql /var/run/mysqld
+
+    node_list=$(host $SERVICE_NAME | grep "has address" |  awk '{print $4}' | paste -s -d, -)
+
+    if [ -z "$node_list" ]; then
+        # if we are in a bootstrap mode we want to set root password first
+        mysqld --wsrep-cluster-address=gcomm://$node_list &
+        pid="$!"
+        # waiting for mysql to become ready
+        while !(mysqladmin ping)
+        do
+           sleep 3
+           echo "waiting for mysql ..."
+        done
+        # setting root password to $MYSQL_ROOT_PASSWORD
+        mysql -u root  -e "update user set password=PASSWORD(\"$mynewpassword\") where User='root';"
+        # stopping mysql because we have to restart after setting root password
+        if ! kill -s TERM "$pid" || ! wait "$pid"; then
+            echo >&2 'MySQL init process failed.'
+            exit 1
+        fi
+    fi
+    mysqld --wsrep-cluster-address=gcomm://$node_list &
+    ```
+    `$SERVICE_NAME` is the DNS name of the service that wraps all 3 mysql nodes. This is a headles service, so instead of a virtual IP address it resolves to the list of all IP addresses of the underlying pods. When the first node is started `host $SERVICE_NAME` command returns and empty list. In this case `node_list` variable is empty. After the first node is started the command returns its IP address, after the second one is started it returns 2 IP addresses separated by comma. This is exactly what we need to start the galera cluster: the first node should be started with `--wsrep-cluster-address=gcomm://` parameter, the secon with `--wsrep-cluster-address=gcomm://<first-node-ip>`, the third with `--wsrep-cluster-address=gcomm://<first-node-ip>,<second-node-ip>` and so on.
+
+1. Make `start.sh` executable
+    ```
+    chmod +x start.sh
+    ```
+
+1. Build the image and push it to the container registry
+    ```
+    $ docker build . -t gcr.io/$PROJECT_ID/mysql-galera
+    $ docker push gcr.io/$PROJECT_ID/mysql-galera
+    ```
+
+1. Delete db deployment and db service
+    ```
+    $ kubectl delete deployment db
+    $ kubectl delete svc db
+    ```
+
+1. Save the following file as `mysql-galera-svc.yml` and apply the changes
+
+    ```
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: galera-cluster
+    spec:
+      ports:
+      - port: 3306
+        name: mysql
+      clusterIP: None
+      selector:
+        app: gceme
+        role: db
+      publishNotReadyAddresses: true
+    ```
+    The most inportant parameter here is `clusterIP: None` This is called a [Headless service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services) In this case kubernes will not create a cluster IP for the service and DNS name `galera-cluster` will point directly to the list of undrlying pods.
+
+1. Save the following file as `mysql-galera.yml` and apply the changes
+
+    ```
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: db
+    spec:
+      serviceName: "galera"
+      replicas: 3
+      selector:
+        matchLabels:
+          app: gceme
+          role: db
+      template:
+        metadata:
+          labels:
+            app: gceme
+            role: db
+        spec:
+          containers:
+          - name: mysql
+            image: <REPLACE_WITH_YOUR_OWN_MYSQL_IMAGE> 
+            ports:
+            - containerPort: 3306
+              name: mysql
+            - containerPort: 4444
+              name: sst
+            - containerPort: 4567
+              name: replication
+            - containerPort: 4568
+              name: ist
+            env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: password
+            - name: SERVICE_NAME
+              value: galera-cluster
+            readinessProbe:
+              exec:
+                command:
+                - sh
+                - -c
+                - "mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'show databases;'"
+              initialDelaySeconds: 15
+              timeoutSeconds: 5
+              successThreshold: 2
+    ```
