@@ -1,10 +1,6 @@
-Getting Started with GCP
-===============
+# Getting Started with GCP
 
-This guide will take you through the steps necessary to continuously deliver your software to end users by leveraging [Google Container Engine](https://cloud.google.com/container-engine/) and [Jenkins](https://jenkins.io) to orchestrate the software delivery pipeline.
-
-Objectives
-----------
+## Objectives
 
 Before getting started, you first have to prepare the environment for the workshop.
 
@@ -16,8 +12,7 @@ Before getting started, you first have to prepare the environment for the worksh
 
 ---
 
-Google Cloud Platform Overview
-------------------------------
+## Google Cloud Platform Overview
 
 - managed by Google
 - provides basic resources like compute, storage and network
@@ -81,8 +76,7 @@ Zonal, Regional, and Global Resources
 
 ---
 
-Google Cloud Platform (GCP) account
------------------------------------
+## Google Cloud Platform (GCP) account
 
 In this workshop, you will run Kubernetes in GCP. We have created a separate project for each student. You should receive an email with the credentials to log in.
 
@@ -96,8 +90,7 @@ We recommend using Chrome browser during the workshop.
 
 1. In the top left corner select the project "Cloud Project XX", where XX is your account number
 
-Cloud Shell
------------
+## Cloud Shell
 
 Console is the UI tool for managing cloud resources. Most of the exercises in this course are done from the command line so you will need a terminal and an editor.
 
@@ -111,8 +104,7 @@ Now click "Launch the editor" button.
 
 This will start a virtual machine in the cloud and give you access to a terminal and an editor.
 
-Enable APIs
------------
+## Enable APIs
 
 As a project owner, you control which APIs are accessible for the project. Enable the APIs required for the workshop:
 
@@ -201,8 +193,7 @@ Note that changing the zone will not change the region automatically.
 
 Every time you open new terminal you need to input these commands. Place them inside `~/.profile` file and they will be executed automatically each time you log in.
 
-Download the lab source code from GitHub
-------------------------------------
+## Download the lab source code from GitHub
 
 Clone the lab repository in your cloud shell, then `cd` into that dir:
 
