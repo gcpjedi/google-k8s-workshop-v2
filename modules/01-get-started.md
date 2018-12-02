@@ -104,6 +104,26 @@ Now click "Launch the editor" button.
 
 This will start a virtual machine in the cloud and give you access to a terminal and an editor.
 
+## Set computing zone and region
+
+1. When the shell is open, set your default compute zone and region:
+
+```shell
+export PROJECT_ID=$(gcloud config get-value project)
+
+export COMPUTE_REGION=us-west2
+gcloud config set compute/region $COMPUTE_REGION
+
+export COMPUTE_ZONE=us-west2-b
+gcloud config set compute/zone $COMPUTE_ZONE
+
+gcloud info
+```
+
+Note that changing the zone will not change the region automatically.
+
+Every time you open new terminal you need to input these commands. Place them inside `~/.profile` file and they will be executed automatically each time you log in.
+
 ## Enable APIs
 
 As a project owner, you control which APIs are accessible for the project. Enable the APIs required for the workshop:
@@ -171,27 +191,6 @@ Operation finished successfully. The following command can describe the Operatio
 $ gcloud services list --enabled | grep compute
 compute.googleapis.com             Compute Engine API
 ```
-
-Set computing zone and region
------------------------------
-
-1. When the shell is open, set your default compute zone and region:
-
-```shell
-export PROJECT_ID=$(gcloud config get-value project)
-
-export COMPUTE_REGION=us-west2
-gcloud config set compute/region $COMPUTE_REGION
-
-export COMPUTE_ZONE=us-west2-b
-gcloud config set compute/zone $COMPUTE_ZONE
-
-gcloud info
-```
-
-Note that changing the zone will not change the region automatically.
-
-Every time you open new terminal you need to input these commands. Place them inside `~/.profile` file and they will be executed automatically each time you log in.
 
 ## Download the lab source code from GitHub
 
