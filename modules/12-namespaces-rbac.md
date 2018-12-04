@@ -4,9 +4,8 @@ Module objectives
 
 1. Create a namespace
 1. Add a user to the cluster
-1. Create roles and cluster roles and assign them to the user
-1. Make sure that roles are enforced
-1. Use IAM to control user permissions on a cluster level
+1. Create role, assign it to the user and make sure it is enforced
+1. Create cluster role, assign it to the user and make sure it is enforced
 
 ## Create a namespace
 
@@ -105,5 +104,131 @@ In this exercise you will create service account and configure `gcloud` to use i
     Switched to context "gke-workshop".
     ```
 
-```
+## Create role, assign it to the user and make sure it is enforced
+
+Role is a set of rules that are applied to the namespace. ClusterRole is applied to the whole cluster.
+
+In both cases you describe the objects you want to grant access to and operations user may execute against these objects.
+
+For the role to take effect you must bing it to the user.
+
+1. Create `worker-role.yaml` file which grants permissions to create pods and deployments.
+
+    ```yaml
+    kind: Role
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      namespace: workshop
+      name: worker
+    rules:
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["get", "watch", "list", "create"]
+    - apiGroups: ["apps"]
+      resources: ["deployments"]
+      verbs: ["get", "watch", "list", "create"]
+    ```
+
+    Apply the manifest
+
+    ```shell
+    $ kubectl apply -f worker-role.yaml
+    role.rbac.authorization.k8s.io/worker created
+    ```
+
+1. Create binding between user and the role. Note that it is for `workshop` namespace only.
+
+    ```yaml
+    kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: worker
+      namespace: workshop
+    subjects:
+    - kind: User
+      name: system:serviceaccount:workshop:workshop-user
+      apiGroup: rbac.authorization.k8s.io
+    roleRef:
+      kind: Role
+      name: worker
+      apiGroup: rbac.authorization.k8s.io
+    ```
+
+    Apply the manifest.
+
+1. Switch context to `limited` and `nginx`
+
+    ```shell
+    $ kubectl config use-context limited
+    Switched to context "limited".
+
+    $ kubectl run nginx --image=nginx
+    deployment.apps/nginx created
+
+    $ kubectl get pods
+    NAME                     READY   STATUS    RESTARTS   AGE
+    nginx-64f497f8fd-kqgzr   1/1     Running   0          18s
+    ```
+
+1. The user still can't read nodes in the cluster
+
+    ```shell
+    kubectl get nodes
+    ```
+
+## Create cluster role, assign it to the user and make sure it is enforced
+
+1. Create `ClusterRole` to list nodes. Nodes are cluster-wide resources and are not associated with a particular namespace.
+
+    ```yaml
+    kind: ClusterRole
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: node-reader
+    rules:
+    - apiGroups: [""]
+      resources: ["nodes"]
+      verbs: ["get", "watch", "list"]
+    ```
+
+    Apply the manifest.
+
+1. Bind `node-reader` role to the service account.
+
+    ```yaml
+    kind: ClusterRoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: read-nodes
+    subjects:
+    - kind: User
+      name: system:serviceaccount:workshop:workshop-user
+      apiGroup: rbac.authorization.k8s.io
+    roleRef:
+      kind: ClusterRole
+      name: node-reader
+      apiGroup: rbac.authorization.k8s.io
+    ```
+
+    Apply the manifest.
+
+1. Now verify that user may list nodes.
+
+    ```shell
+    $ kubectl config use-context limited
+    Switched to context "limited".
+
+    $ kubectl get nodes
+    NAME                                          STATUS   ROLES    AGE   VERSION
+    gke-gke-workshop-default-pool-5d910404-t38p   Ready    <none>   3h    v1.11.3-gke.18
+    ```
+
+1. Switch back to the unrestricted context
+
+## Optional exercise
+
+Delete `pods` permissions from the `worker` role and try to deploy `nginx`. What happens? Can you explain the outcomes?
+
+
+
 
