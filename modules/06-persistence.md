@@ -46,9 +46,9 @@
 
 1. Re-create the Deployment
 
-  ```shell
-  kubectl apply -f manifests/db.yaml
-  ```
+    ```shell
+    kubectl apply -f manifests/db.yaml
+    ```
 
 1. Test the data persists between Pod restarts
 
@@ -207,92 +207,182 @@ Kubernetes defines resource type called StorageClass. By specifying StorageClass
 
 1. The last step is to change PVC reference from the database Pod and update the deployment. Please do this by yourself.
 
-## Use statefull set to deploy a mysql galera cluster
+## Converting mysql deployment to a statefull set
 
-Now it is time for a real challenge! You will deploy replicated cluster consisting of one MariaDB master and two slaves. They will use SSD disks for enhanced performance and replicate data for availability.
+When you are using deployments to manage your pods it is very easy to scale stateless applications, like our backend and frontend, but scaling statefull applications is more difficult. If you want to scale a mysql database you have to start the first node in a bootstrap mode, then you have to wait until this node is redy and finally you have to start all other nodes and add them to the cluster. If you try to use deployment to scale your database it will create 3 instances of the database pod simultaneously and you will not be able to create a cluster. Statefull Set is the right object to do such kund of deployment. Now let's use a Statefull Set to convert our mysql pod to a 3-node galera mysql cluster.  
 
-To deploy such a complex system we will use Kubernetes package manager called Helm.
+1. In the `sample-app` folder create a subfolder `mysql-galera`
 
-Also in this system each node has its own state. So we will use StatefulSet controller instead of the Deployment.
+1. Inside `mysql-galera` folder create a Dockerfile with the following content 
 
-1. Create the configuration file called `config/mariadb.yaml`
+    ```
+    FROM ubuntu:16.04
+    ENV DEBIAN_FRONTEND noninteractive
 
-    ```yaml
-    image:
-      repository: bitnami/mariadb
-      tag: 10.1.37
-    master:
-      persistence:
-        enabled: true
-        storageClass: ssd
-        accessMode:
-        - ReadWriteOnce
-        size: 30Gi
-    slave:
-      replicas: 2
-      persistence:
-        enabled: true
-        storageClass: ssd
-        accessMode:
-        - ReadWriteOnce
-        size: 30Gi
+    RUN apt-get update
+    RUN apt-get install -y software-properties-common
+    RUN apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 BC19DDBA
+    RUN add-apt-repository 'deb http://releases.galeracluster.com/mysql-wsrep-5.7/ubuntu xenial main'
+    RUN add-apt-repository 'deb http://releases.galeracluster.com/galera-3/ubuntu xenial main'
+    RUN apt-get update
+    RUN apt-get install -y galera-3 galera-arbitrator-3 mysql-wsrep-5.7 rsync lsof host
+    COPY my.cnf /etc/mysql/my.cnf
+    COPY start.sh  /start.sh
+    ENTRYPOINT ["/start.sh"]
     ```
 
-    It tells MariaDB to run 1 master and two slaves. Each node has 30Gi persistent SSD disk attached and runs 10.1.37 version of MariaDB packaged by Bitnami.
+    This dockerfile simply installs Galera using the Codership repository and copies the my.cnf start.sh over.  
 
-1. Create MariaDB cluster
+1. Add `my.cnf` file to the `mysql-galera` folder
 
-    ```shell
-    helm install \
-      --name mariadb \
-      --values config/mariadb.yaml \
-      stable/mariadb
+    ```
+    [mysqld]
+    user = mysql
+    bind-address = 0.0.0.0
+    wsrep_provider = /usr/lib/galera/libgalera_smm.so
+    wsrep_sst_method = rsync
+    default_storage_engine = innodb
+    binlog_format = row
+    innodb_autoinc_lock_mode = 2
+    innodb_flush_log_at_trx_commit = 0
+    query_cache_size = 0
+    query_cache_type = 0
+    ```
+    This file configures galera replication.
+
+1. Add `start.sh` file to the `mysql-galera` folder. 
+
+    ```
+    #!/bin/bash -e
+
+    mkdir /var/run/mysqld
+    chown mysql:mysql /var/run/mysqld
+
+    node_list=$(host $SERVICE_NAME | grep "has address" |  awk '{print $4}' | paste -s -d, -)
+
+    if [ -z "$node_list" ]; then
+        # if we are in a bootstrap mode we want to set root password first
+        mysqld --wsrep-cluster-address=gcomm://$node_list &
+        pid="$!"
+        # waiting for mysql to become ready
+        while !(mysqladmin ping)
+        do
+           sleep 3
+           echo "waiting for mysql ..."
+        done
+        # setting root password to $MYSQL_ROOT_PASSWORD
+        mysql -u root  -e "use mysql; update user set authentication_string=password(\"$MYSQL_ROOT_PASSWORD\") where user='root';"
+        # stopping mysql because we have to restart after setting root password
+        if ! kill -s TERM "$pid" || ! wait "$pid"; then
+            echo >&2 'MySQL init process failed.'
+            exit 1
+        fi
+    fi
+    mysqld --wsrep-cluster-address=gcomm://$node_list 
+    ```
+    `$SERVICE_NAME` is the DNS name of the service that wraps all 3 mysql nodes. This is a headles service, so instead of a virtual IP address it resolves to the list of all IP addresses of the underlying pods. When the first node is started `host $SERVICE_NAME` command returns and empty list. In this case `node_list` variable is empty. After the first node is started the command returns its IP address, after the second one is started it returns 2 IP addresses separated by comma. This is exactly what we need to start the galera cluster: the first node should be started with `--wsrep-cluster-address=gcomm://` parameter, the secon with `--wsrep-cluster-address=gcomm://<first-node-ip>`, the third with `--wsrep-cluster-address=gcomm://<first-node-ip>,<second-node-ip>` and so on.
+
+1. Make `start.sh` executable
+    ```
+    chmod +x start.sh
     ```
 
-    In another terminal watch the resources this step creates:
-
-    - Stateful Sets
-    - Persistent Volumes
-    - Persistent Volume Claims
-    - Pods
-    - Services
-
-    Notice that StatefulSet controller adds slave Pods one by one. Deployment controller would add them all in one batch.
-
-1. After all the Pods are in `Running` state get the admin password
-
-    ```shell
-    $ ROOT_PASSWORD=$(kubectl get secret --namespace default mariadb-mariadb -o jsonpath="{.data.mariadb-root-password}" | base64 --decode)
-    $ echo $ROOT_PASSWORD
-    lmAiD6FcmP
+1. Build the image and push it to the container registry
+    ```
+    $ docker build . -t gcr.io/$PROJECT_ID/mysql-galera
+    $ docker push gcr.io/$PROJECT_ID/mysql-galera
     ```
 
-1. Delete previous MySQL deployment
-
-1. Upgrade backend running command
-
-    ```yaml
-    command: ["app", "-mode=backend", "-run-migrations", "-port=8080", "-db-host=mariadb-mariadb", "-db-password=lmAiD6FcmP" ]
+1. Delete db deployment and db service
+    ```
+    $ kubectl delete deployment db
+    $ kubectl delete svc db
     ```
 
-    `mariadb-mariadb` is the name of the master service (`kubectl get svc`)
+1. Save the following file as `mysql-galera-svc.yml` and apply the changes
 
-    `lmAiD6FcmP` is the admin password (it will be different in you case)
+    ```
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: galera-cluster
+    spec:
+      ports:
+      - port: 3306
+        name: mysql
+      clusterIP: None
+      selector:
+        app: gceme
+        role: db
+      publishNotReadyAddresses: true
+    ```
+    The most inportant parameter here is `clusterIP: None` This is called a [Headless service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services) In this case kubernes will not create a cluster IP for the service and DNS name `galera-cluster` will point directly to the list of undrlying pods.
 
-    Apply the configuration and add some notes in the frontend app.
+1. Save the following file as `mysql-galera.yml` and apply the changes
 
-1. Now connect to the MariDB replica and show the content of the database. The notes should be replicated from master to slave.
+    ```
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: db
+    spec:
+      serviceName: "galera"
+      replicas: 3
+      selector:
+        matchLabels:
+          app: gceme
+          role: db
+      template:
+        metadata:
+          labels:
+            app: gceme
+            role: db
+        spec:
+          containers:
+          - name: mysql
+            image: <REPLACE_WITH_YOUR_OWN_MYSQL_IMAGE> 
+            ports:
+            - containerPort: 3306
+              name: mysql
+            - containerPort: 4444
+              name: sst
+            - containerPort: 4567
+              name: replication
+            - containerPort: 4568
+              name: ist
+            env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: password
+            - name: SERVICE_NAME
+              value: galera-cluster
+            readinessProbe:
+              exec:
+                command:
+                - sh
+                - -c
+                - "mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'show databases;'"
+              initialDelaySeconds: 5
+              timeoutSeconds: 2
+              successThreshold: 2
+    ```
+1. Connect to the app and check that you can add notes .
 
-    ```shell
-    # start a client container inside the cluster
-    $ kubectl run mariadb-mariadb-client --rm --tty -i --image  docker.io/bitnami/mariadb:10.1.37 --namespace default --command -- bash
+1. Exec inside one of the db pods
 
-    # connect to slave instance
-    $ mysql -h mariadb-mariadb-slave.default.svc.cluster.local -uroot -p sample_app
-    Password: <enter root password>
+    ```
+    $ kubectl exec -it db-0 bash
+    ```
+1. Connect to the mysql
 
-    # show the stored notes
-    $ MariaDB [sample_app]> select * from notes;
+    ```
+    $ mysql -u root -p$MYSQL_ROOT_PASSWORD sample_app
+    ```
+1. Check that your notes are there
+    ```
+    mysql> select * from notes;
     +----+---------------------+---------------------+------------+---------------------+
     | id | created_at          | updated_at          | deleted_at | note                |
     +----+---------------------+---------------------+------------+---------------------+
@@ -300,6 +390,10 @@ Also in this system each node has its own state. So we will use StatefulSet cont
     |  2 | 2018-11-30 09:09:48 | 2018-11-30 09:09:48 | NULL       | I am from Finland   |
     +----+---------------------+---------------------+------------+---------------------+
     2 rows in set (0.00 sec)
-    ```
+    ``` 
 
-Stateful Sets and Helm package manager allows you to deploy complex stateful systems on top of Kubernetes.
+## Optional Exercises
+
+### Use persistent columes in the stateful set 
+
+Adopt `manifests/mysql-galera.yml` to use persistent volume claims. Make suer the data survives after you delete and recreate the database.
