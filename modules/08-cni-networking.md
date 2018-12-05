@@ -10,7 +10,6 @@
         --zone us-central1-b \
         --image-family ubuntu-1604-lts \
         --image-project ubuntu-os-cloud \
-        --network k8s \
         --can-ip-forward
     ```
 
@@ -20,7 +19,6 @@
         --zone us-central1-b \
         --image-family ubuntu-1604-lts \
         --image-project ubuntu-os-cloud \
-        --network k8s \
         --can-ip-forward
     ```
 
