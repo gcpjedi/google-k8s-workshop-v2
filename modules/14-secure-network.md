@@ -11,6 +11,78 @@ Module objectives
 1. Enable Metadata Concealment to prevent pods from accessing certain VM metadata
 1. Enable and test Cloud IAP for the cluster
 
+## Create and test a network security policy
+
+First let's enable network policy enforcement on the GKE cluster.
+
+It is a two-step process.
+
+1. Deploy network policy addon on top of the cluster
+
+    ```shell
+    gcloud container clusters update gke-workshop \
+      --update-addons=NetworkPolicy=ENABLED
+    ```
+
+1. Enable network policy enforcement on the Nodes
+
+    ```shell
+    gcloud container clusters update gke-workshop \
+      --enable-network-policy
+    ```
+
+1. Watch how your k8s cluster is updated one Node at a time:
+
+    ```shell
+    kubectl get nodes --watch
+    ```
+
+When all the nodes are in `Ready` state you may proceed to the next step.
+
+Let's see how to use network policy for blocking the external traffic for a `Pod`
+
+1. Create file called `deny-egress.yaml`:
+
+    ```shell
+    cat > deny-egress.yaml << EOM
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: foo-deny-egress
+    spec:
+      podSelector:
+        matchLabels:
+          app: foo
+      policyTypes:
+      - Egress
+      egress:
+      # allow DNS resolution
+      - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    EOM
+    ```
+
+    ```shell
+    kubectl apply -f deny-egress.yaml
+    ```
+
+    This network policy blocks all the outgoing traffic except DNS resolution.
+
+1. Now start the pod that matches label `app=foo`
+
+    ```shell
+    $ kubectl run --rm --restart=Never --image=alpine -i -t -l app=foo test -- ash
+
+    $ wget --timeout 1 -O- http://www.example.com
+    Connecting to www.example.com (93.184.216.34:80)
+    wget: download timed out
+    ```
+
+    You see the name resolution works fine but external connections are dropped.
+
 ## Setup a GKE Private Cluster
 
 GKE cluster endpoints by default have public IPs. That mean users outside may access both master API and SSH to the nodes.
