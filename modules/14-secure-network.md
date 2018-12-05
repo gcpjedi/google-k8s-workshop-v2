@@ -360,7 +360,7 @@ To interact with the cluster one need to provision a vm inside the cluster netwo
 
     This time you should be able to access Kubernetes API from `jumpbox-outer`
 
-## Clean up
+### Clean up: private cluster
 
 Delete the provisioned resources
 
@@ -368,4 +368,93 @@ Delete the provisioned resources
 gcloud compute instances delete jumpbox-inner jumpbox-outer
 
 gcloud container clusters delete gke-workshop-1
+```
+
+## Enable Metadata Concealment to prevent pods from accessing certain VM metadata
+
+Nodes running in Google Cloud may learn information about themselves by querying metadata server. It is accessible without authentication from any instance on the host `http://metadata/computeMetadata/v1/`.
+
+Some metadata is considered sensitive, in particular instance identity token. Applications connecting to the instance may verify the instance identity with this token. Pod may interact as instance if it gets access to the token and recieves the connection from an app.
+
+First let's try to get the token from the unrestricted cluster.
+
+```shell
+$ kubectl run --rm --restart=Never --image=alpine -i -t test -- ash
+
+$ apk add curl
+
+$ curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.example.com'
+eyJhbGciOi...
+```
+
+One can get instance identity token from the `Pod`.
+
+Let's disable this behavior.
+
+```shell
+gcloud beta container clusters create gke-workshop-0 \
+--cluster-version 1.11.3 \
+--num-nodes 1 \
+--machine-type n1-standard-1 \
+--workload-metadata-from-node=SECURE
+```
+
+Run a container with the shell inside the cluster.
+
+```shell
+$ kubectl run --rm --restart=Never --image=alpine -i -t test -- ash
+
+$ apk add curl
+
+$ curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.example.com'
+This metadata endpoint is concealed.
+```
+
+GKE runs proxy between Pods and Metadata server. This proxy conceals identity token endpoint and `kube-env`.
+
+What if user wants to get project id where the Kubernetes is running?
+
+```shell
+$ curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/project/project-id'
+project-aleksey-zalesov/
+```
+
+It works as proxy does not conceal all the endpoints.
+
+In current configuration one may use legacy endpoint `v1beta1` instead of `v1`. The `v1beta1` is considered less secure as it does not implement some safeguards. For example, it does not require "Metadata-Flavor: Google" header which protects user from quering the endpoint by accident from the insecure environment.
+
+```shell
+$ curl 'http://metadata/computeMetadata/v1beta1/project/project-id'
+project-aleksey-zalesov/
+```
+
+Unfortunately, one may not disable legacy endpoints for the existing cluster. So you need to rebuild cluster.
+
+```shell
+gcloud beta container clusters create gke-workshop-1 \
+--cluster-version 1.11.3 \
+--num-nodes 1 \
+--machine-type n1-standard-1 \
+--workload-metadata-from-node=SECURE \
+--metadata disable-legacy-endpoints=true
+```
+
+After the cluster is ready and you run a shell inside of it, try to use `v1beta` endpoint.
+
+```shell
+$ curl 'http://metadata/computeMetadata/v1beta1/project/project-id'
+
+Your client does not have permission to get URL <code>/computeMetadata/v1beta1/project/project-id</code> from this server. Legacy metadata endpoint accessed: /computeMetadata/v1beta1/project/project-id
+Legacy metadata endpoints are disabled. Please use the /v1/ endpoint.
+```
+
+Metadata concealment is a temporary security solution made available to users of GKE while the bootstrapping process for cluster nodes is being redesigned with significant security improvements. This feature is scheduled to be deprecated and removed in the future.
+
+### Clean up: metadata conceal
+
+Get rid of both clusters.
+
+```shell
+gcloud container clusters delete gke-workshop-0 --async
+gcloud container clusters delete gke-workshop-1 --async
 ```
