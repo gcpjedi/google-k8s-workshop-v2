@@ -16,50 +16,140 @@
 
 ## Configure & Install Istio
 
-1. Deploy Istio Kubernetes cluster using Google Cloud Marketplace
+In this exercises you will create a new cluster with Istio installed on top of it. You will use automation tool called `Cloud Deployment Manager` to accomplish the task. This tool allows one to describe infrastructure in the configuration file and manage it declaratively.
 
-    Go to [Istio page](https://console.cloud.google.com/marketplace/config?templateurl=https:%2F%2Fraw.githubusercontent.com%2Fistio%2Fistio%2Frelease-1.0%2Finstall%2Fgcp%2Fdeployment_manager%2Fistio-cluster.jinja)
+Google Cloud Marketplace is a registry of such automation templates you may use to bootstrap services on top of GCP.
 
-    ![Istio Settings](img/istio-settings.png)
-
-1. Wait until Deployment manager creates infrastructure for you.
-
-1. Get credentials for the new cluster
+1. Download Istio release
 
     ```shell
-    $ gcloud container clusters get-credentials istio-cluster
-    Fetching cluster endpoint and auth data.
-    kubeconfig entry generated for istio-cluster.
-    ```
+    wget https://github.com/istio/istio/releases/download/1.0.4/istio-1.0.4-linux.tar.gz
+    tar xzf istio-1.0.4-linux.tar.gz
+    cd istio-1.0.4
+    ``
 
-1. Make yourself admin of the cluster
-
-    ```shell
-    $ kubectl create clusterrolebinding cluster-admin-binding \
-    --clusterrole cluster-admin \
-    --user $(gcloud config get-value account)
-    clusterrolebinding.rbac.authorization.k8s.io/cluster-admin-binding created
-    ```
-
-1. Verify Istio is isntalled and running
+1. Create Tiller service account
 
     ```shell
-    $ kubectl get deployments,ing -n istio-system
-    NAME                     DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-    grafana                  1         1         1            1           4m21s
-    istio-citadel            1         1         1            1           4m20s
-    istio-egressgateway      1         1         1            1           4m21s
-    istio-galley             1         1         1            0           4m21s
-    istio-ingressgateway     1         1         1            1           4m21s
-    istio-pilot              1         1         1            0           4m20s
-    istio-policy             1         1         1            0           4m21s
-    istio-sidecar-injector   1         1         1            0           4m20s
-    istio-telemetry          1         1         1            0           4m20s
-    istio-tracing            1         1         1            1           4m20s
-    prometheus               1         1         1            1           4m20s
-    servicegraph             1         1         1            1           4m20s
+    kubectl apply -f install/kubernetes/helm/helm-service-account.yaml
     ```
+
+1. Install Tiller
+
+    ```shell
+    helm init --service-account tiller
+    ```
+
+1. Install Istio
+
+    ```shell
+    helm install install/kubernetes/helm/istio \
+      --name istio \
+      --namespace istio-system \
+      --values install/kubernetes/helm/istio/values-istio-demo-auth.yaml
+    ```
+
+1. Verify that Istio is correctly installed
+
+    ```shell
+    kubectl get service -n istio-system
+    kubectl get pods -n istio-system
+    ```
+
+    All pods should be in Running or Completed state.
 
 Now you are ready to deploy sample application to the Istio cluster.
 
 ## Deploying a microservice with an istio sidecar
+
+1. Create namespace called `dev`
+
+1. Deploy `sample-app` to the `dev` namespace
+
+    You should be able to access the LoadBalancer IP as usual.
+
+1. Configure injection of the sidecar into the app
+
+    ```shell
+    # label default namespace for sidecar injection
+    $ kubectl label namespace dev istio-injection=enabled
+
+    #recreate containers in the dev namespace
+
+    # check they are now started with the sidecar
+    $ k get pods -n dev --watch
+    NAME       READY   STATUS    RESTARTS   AGE
+    backend    2/2     Running   2          61s
+    db         2/2     Running   0          61s
+    frontend   2/2     Running   0          61s
+    ```
+
+1. Create Istio gateway
+
+    ```yaml
+    apiVersion: networking.istio.io/v1alpha3
+    kind: Gateway
+    metadata:
+    name: gceme-gateway
+    spec:
+    selector:
+        istio: ingressgateway # use istio default controller
+    servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+        hosts:
+        - "*"
+    ```
+
+1. Create virtual service for the frontend
+
+    ```shell
+    apiVersion: networking.istio.io/v1alpha3
+    kind: VirtualService
+    metadata:
+    name: gceme
+    spec:
+    hosts:
+    - "*"
+    gateways:
+    - gceme-gateway
+    http:
+    - match:
+        - uri:
+            exact: /
+        - uri:
+            exact: /add-note
+        - uri:
+            exact: /healthz
+        route:
+        - destination:
+            host: frontend
+            port:
+            number: 80
+    ```
+
+1. Check gateway is created
+
+```shell
+$ k get gateway -n dev
+NAME            AGE
+gceme-gateway   3m
+```
+
+1. Get Ingress IP info
+
+```shell
+# get data from LB
+export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
+```
+
+1. Change `frontend` service type to Cluster IP.
+
+    Now the app should be reachable through the Istio gateway on `$GATEWAY_URL`
+
+You can write notes and save them in the database. But you don't see majority of the information about GCE instance. This is because application gets this info from the `metadata.google.internal` server which is not part of the Istio mesh. We will learn how to exclude some IPs from the Istio policy later and for now let' proceed to the next exercise.
