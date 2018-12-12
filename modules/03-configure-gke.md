@@ -325,6 +325,7 @@ $ gcloud container clusters delete gke-workshop-0 --async
 $ gcloud container clusters create gke-workshop \
 --cluster-version 1.11.3 \
 --num-nodes 4 \
+--no-enable-legacy-authorization \
 --machine-type n1-standard-2 
 ```
 

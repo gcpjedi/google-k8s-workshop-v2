@@ -18,42 +18,48 @@
 
 In this exercises you will create a new cluster with Istio installed on top of it. You will use automation tool called `Cloud Deployment Manager` to accomplish the task. This tool allows one to describe infrastructure in the configuration file and manage it declaratively.
 
-Google Cloud Marketplace is a registry of such automation templates you may use to bootstrap services on top of GCP.
+1. Grant cluster admin permissions to the current user. You need these permissions to create the necessary role based access control (RBAC) rules for Istio:
+
+    ```
+    $ kubectl create clusterrolebinding cluster-admin-binding \
+      --clusterrole=cluster-admin \
+      --user="$(gcloud config get-value core/account)"
+    ```
 
 1. Download Istio release
 
     ```shell
-    wget https://github.com/istio/istio/releases/download/1.0.4/istio-1.0.4-linux.tar.gz
-    tar xzf istio-1.0.4-linux.tar.gz
-    cd istio-1.0.4
+    $ wget https://github.com/istio/istio/releases/download/1.0.4/istio-1.0.4-linux.tar.gz
+    $ tar xzf istio-1.0.4-linux.tar.gz
+    $ cd istio-1.0.4
     ``
 
-1. Create Tiller service account
-
-    ```shell
-    kubectl apply -f install/kubernetes/helm/helm-service-account.yaml
+1. Add the istioctl client to your PATH. Add the following line to the `.bashrc` file
     ```
-
-1. Install Tiller
-
-    ```shell
-    helm init --service-account tiller
+    export PATH=$HOME/istio-1.0.4/bin:$PATH
     ```
-
-1. Install Istio
-
-    ```shell
-    helm install install/kubernetes/helm/istio \
-      --name istio \
-      --namespace istio-system \
-      --values install/kubernetes/helm/istio/values-istio-demo-auth.yaml
+1. Install Istio's core components:
     ```
+    $ kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+    ```
+    This does the following:
+
+    * creates the istio-system namespace along with the required RBAC permissions
+    * deploys the core Istio components:
+
+        * Istio-Pilot, which is responsible for service discovery and for configuring the Envoy sidecar proxies in an Istio service mesh.
+        * The Mixer components Istio-Policy and Istio-Telemetry, which enforce usage policies and gather telemetry data across the service mesh.
+        * Istio-Ingressgateway, which provides an ingress point for traffic from outside the cluster.
+        * Istio-Citadel, which automates key and certificate management for Istio.
+    * deploys plugins for metrics, logs, and tracing.
+
+    * enables mutual TLS authentication between Envoy sidecars. 
 
 1. Verify that Istio is correctly installed
 
     ```shell
-    kubectl get service -n istio-system
-    kubectl get pods -n istio-system
+    $ kubectl get service -n istio-system
+    $ kubectl get pods -n istio-system
     ```
 
     All pods should be in Running or Completed state.
@@ -62,26 +68,23 @@ Now you are ready to deploy sample application to the Istio cluster.
 
 ## Deploying a microservice with an istio sidecar
 
-1. Create namespace called `dev`
+1. Delete everything from the default namespace
 
-1. Deploy `sample-app` to the `dev` namespace
+    ```
+    $ kubectl delete deployment --all
+    $ kubectl delete svc --all
+    $ kubectl delete statefulset --all
+    ```
 
-    You should be able to access the LoadBalancer IP as usual.
+1. Label default namespace for sidecar injection
+    ```
+    $ kubectl label namespace default istio-injection=enabled
+    ```
+    Alternatively you can use `istioctl kube-inject` command to manually add sidecar container to each deployment.
 
-1. Configure injection of the sidecar into the app
-
-    ```shell
-    # label default namespace for sidecar injection
-    $ kubectl label namespace dev istio-injection=enabled
-
-    #recreate containers in the dev namespace
-
-    # check they are now started with the sidecar
-    $ k get pods -n dev --watch
-    NAME       READY   STATUS    RESTARTS   AGE
-    backend    2/2     Running   2          61s
-    db         2/2     Running   0          61s
-    frontend   2/2     Running   0          61s
+1. Redeploy the sample app
+    ```
+    $ kubectl apply -f backend-svc.yml -f backend.yml -f db-svc.yml -f db.yml -f frontend-svc.yml -f frontend.yml
     ```
 
 1. Create Istio gateway
