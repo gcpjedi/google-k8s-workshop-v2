@@ -458,3 +458,126 @@ Get rid of both clusters.
 gcloud container clusters delete gke-workshop-0 --async
 gcloud container clusters delete gke-workshop-1 --async
 ```
+
+## Cloud IAP
+
+1. Make sure that you have `sample-app` exposed as Ingress
+
+    ```shell
+    $ kubectl get ingress
+    NAME            HOSTS   ADDRESS          PORTS     AGE
+    basic-ingress   *       35.244.247.163   80, 443   34m
+    ```
+
+    Note external IP of the ingress - `35.244.247.163`
+
+1. Cloud IAP requires that users connect using HTTPS protocol. So now you will generate self-signed TLS certificate and add it to the Ingress.
+
+    Generate self-signed certificate
+
+    ```shell
+    openssl req \
+      -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout tls.key \
+      -out tls.crt \
+      -subj "/CN=35.244.247.163.xip.io/O=nginxsvc"
+    ```
+
+    Note that we use xip.io domain as Cloud IAP doesn't allow using IP.
+
+    Create a secret with tls certificate and private key
+
+    ```shell
+    kubectl create secret tls tls-secret-0 --key tls.key --cert tls.crt
+    ```
+
+    Add the secret to the ingress
+
+    ```yaml
+    apiVersion: extensions/v1beta1
+    kind: Ingress
+    metadata:
+      name: basic-ingress
+    spec:
+      tls:
+      - secretName: tls-secret-0
+    ..
+    ```
+
+    Apply the configuration.
+
+    Proceed to the next step when the application is available using HTTPS.
+
+1. Now add conscent screen to the project. This information will be displayed for the users accessing the application.
+
+    - URL: https://console.cloud.google.com/apis/credentials/consent
+    - Application type: Internal
+    - Application name: sample app
+    - Authorized domains: xip.io
+    - Application Homepage link: http://35.244.247.163.xip.io/home
+    - Application Privacy Policy link: http://35.244.247.163.xip.io/privacy
+    - Application Terms of Service link: http://35.244.247.163.xip.io/tos
+
+    Click save.
+
+1. Add yourself as user who can access the application
+
+    Go to https://console.cloud.google.com/security/iap
+
+    Select the ingress for the sample application.
+
+    In the right pane click "Add member" and add yourslef with the role `IAP-secured Web App User`.
+
+    Note that you can't add users outside `altoros.com` organisation as the application marked as `Internal`.
+
+    ![IAP Role](img/IAP-role.png)
+
+1. Click the slider in the center of the screen to tur IAP on
+
+1. Wait until Cloud IAP provisions credentails
+
+    They will be available at https://console.cloud.google.com/apis/credentials
+
+    ![IAP Credentials](img/iap-credentials.png)
+
+1. When available export as environmental vaiables Client ID and Client secret.
+
+    ```shell
+    export CLIENT_ID="24..9oggcoseuc7q.apps.googleusercontent.com"
+    export CLIENT_SECRET="NOTD.."
+    ```
+
+1. Create a secret with OAuth data
+
+    ```shell
+    kubectl create secret generic my-secret-0 \
+      --from-literal=client_id=$CLIENT_ID \
+      --from-literal=client_secret=$CLIENT_SECRET
+    ```
+
+1. And use this secret as the backend configuration for Cloud IAP
+
+    ```yaml
+    apiVersion: cloud.google.com/v1beta1
+    kind: BackendConfig
+    metadata:
+      name: config-default
+      namespace: default
+    spec:
+      iap:
+        enabled: true
+        oauthclientCredentials:
+          secretName: my-secret-0
+    ```
+
+1. Now wait some time and go to https://35.244.247.163.xip.io/
+
+    The IP will be different in your case.
+
+    You should see the screen `Sign in with Google`
+
+    Enter the account and the password you for the training and you will see the application frontend.
+
+    Try to login with a different user and make sure you can't access the application.
+
+In this exercise you configured Cloud IAP to protect the application running on GKE.
