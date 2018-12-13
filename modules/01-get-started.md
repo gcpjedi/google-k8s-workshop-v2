@@ -46,7 +46,7 @@ You will use these services while doing the lab:
 - Cloud Build: Build Docker containers
 - Container Registry: Storing versioned Docker images of an app
 
-Cloud Console is admin UI for Google Cloud. With Cloud Console you can find and manage your resources through a secure administrative interface.
+Cloud Console is the admin user interface for Google Cloud. With Cloud Console you can find and manage your resources through a secure administrative interface.
 
 Cloud Console features:
 
@@ -76,35 +76,33 @@ Zonal, Regional, and Global Resources
 
 ---
 
-## Google Cloud Platform (GCP) account
+## Google Cloud Platform (GCP) Account
 
-In this workshop, you will run Kubernetes in GCP. We have created a separate project for each student. You should receive an email with the credentials to log in.
+In this workshop you will run Kubernetes in GCP. We have created a separate project for each student. You should receive an email with the credentials to log in.
 
-We recommend using Chrome browser during the workshop.
+We recommend using Google's Chrome browser during the workshop.
 
 1. Go to https://console.cloud.google.com/
 1. Enter the username
 1. Enter the user password
 
-    > Note: *Sometimes GCP asks for a verification code when it detects logins from unusual locations. It is security measure to keep the account protected. If this happens, please ask the instructor for the verification code.*
+  > Note: Sometimes GCP asks for a verification code when it detects logins from unusual locations. It is a security measure to keep the account protected. If this happens, please ask the instructor for the verification code.
 
-1. In the top left corner select the project "Cloud Project XX", where XX is your account number
+1. In the top left corner select the project "XXXXXXXXXXXXX-yyyyyy", where XXXXXXXXXXXXX matches the name of the e-mail you were given.
 
 ## Cloud Shell
 
-Console is the UI tool for managing cloud resources. Most of the exercises in this course are done from the command line so you will need a terminal and an editor.
+Console is the UI tool for managing cloud resources. Most of the exercises in this course are done from the command line, so you will need a terminal and an editor.
 
 Click "Activate Cloud Shell" button in the top right corner.
 
   ![](img/cloud-shell.png)
 
-  ![](img/cloud-shell-prompt.png)
-
-Now click "Launch the editor" button.
+Now click the "Start Cloud Shell" button in the lower right of the dialog.
 
 This will start a virtual machine in the cloud and give you access to a terminal and an editor.
 
-## Set computing zone and region
+## Set Computing Zone and Region
 
 When the shell is open, set your default compute zone and region:
 
@@ -116,17 +114,20 @@ gcloud config set compute/region $COMPUTE_REGION
 
 export COMPUTE_ZONE=us-west2-b
 gcloud config set compute/zone $COMPUTE_ZONE
+```
 
+Every time you open a new terminal you will need to input these commands. To avoid this, place the above commands inside `~/.profile` file and they will be executed automatically each time you log in.
+
+> Note: changing the zone will not change the region automatically.
+
+You can check for additional information with:
+```shell
 gcloud info
 ```
 
-Note that changing the zone will not change the region automatically.
-
-Every time you open new terminal you need to input these commands. Place them inside the `~/.profile` file and they will be executed automatically each time you log in.
-
 ## Enable APIs
 
-As a project owner, you control which APIs are accessible for the project. Enable the APIs required for the workshop:
+As a project owner, you control which APIs are accessible for the project. Enable the APIs which are required for the workshop:
 
 ```shell
 gcloud services enable --async \
@@ -146,7 +147,7 @@ The operation runs asynchronously. You can check if the APIs are enabled for the
 gcloud services list --enabled
 ```
 
-You can also connect to status of job by running command suggested:
+**You can also connect to status of job by running command suggested:**
 
 ```shell
 gcloud beta services operations wait operations/acf.xxxx-xxxx-xxxx-xxxx-xxxx
@@ -180,10 +181,10 @@ Validate count:
 gcloud services list --enabled|grep -v NAME|wc -l
 ```
 
-If some APIs are not enabled retry in sync mode
+Retry using sync mode if some APIs are not enabled
 
 ```shell
-gcloud services enable compute.googleapis.com
+gcloud services enable compute.googleapis.com <...>
 ```
 
 ```
@@ -196,24 +197,13 @@ Operation finished successfully. The following command can describe the Operatio
 gcloud services list --enabled | grep compute
 ```
 
-## Download the lab source code from GitHub
+## Download the Lab Source Code from GitHub
 
-Clone the lab repository in your cloud shell, then `cd` into that dir:
+Clone the lab repository in your cloud shell, then `cd` into that directory:
 
 ```shell
 git clone https://github.com/Altoros/google-k8s-workshop-v2.git
 ```
-
-```
-Cloning into 'google-k8s-workshop'...
-Username for 'https://github.com': altoros-training
-Password for 'https://altoros-training@github.com':
-remote: Counting objects: 78, done.
-remote: Compressing objects: 100% (60/60), done.
-remote: Total 78 (delta 11), reused 78 (delta 11), pack-reused 0
-Unpacking objects: 100% (78/78), done.
-```
-
 ```shell
 cd google-k8s-workshop-v2
 ```
