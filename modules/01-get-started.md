@@ -14,12 +14,12 @@ Before getting started, you first have to prepare the environment for the worksh
 
 ## Google Cloud Platform Overview
 
-- managed by Google
-- provides basic resources like compute, storage and network
-- also provides services like Cloud SQL and Kubernetes engine
-- all operations can be done through the API
+- Managed by Google
+- Provides basic resources like compute, storage and network
+- Also provides services like Cloud SQL and Kubernetes engine
+- All operations can be done through the API
 - SLAs define reliability guarantees for the APIs
-- three ways of access
+- Three ways of access
   - API calls
   - SDK commands
   - Cloud Console web UI
@@ -36,19 +36,19 @@ Google Cloud Computing service groups:
 
 You will use these services while doing the lab:
 
-- Kubernetes Engine: create Kubernetes cluster
-- IAM & Admin: manage users and permissions
-- Compute Engine: run virtual machines for worker nodes
-- VPC Network: connectivity between the nodes
-- Load Balancing: create Ingress of LoadBalancer type
-- Persistent Disk: persistent volume for Jenkins
-- Source Repositories: hosting source code for an app
-- Cloud Build: build Docker containers
-- Container Registry: storing versioned Docker images of an app
+- Kubernetes Engine: Create Kubernetes cluster
+- IAM & Admin: Manage users and permissions
+- Compute Engine: Run virtual machines for worker nodes
+- VPC Network: Connectivity between the nodes
+- Load Balancing: Create Ingress of LoadBalancer type
+- Persistent Disk: Persistent volume for Jenkins
+- Source Repositories: Hosting source code for an app
+- Cloud Build: Build Docker containers
+- Container Registry: Storing versioned Docker images of an app
 
-Cloud Console is admin UI for Google Cloud. With cloud console you can find and manage your resources through secure administrative interface.
+Cloud Console is admin UI for Google Cloud. With Cloud Console you can find and manage your resources through a secure administrative interface.
 
-Cloud console features:
+Cloud Console features:
 
 - Resource Management
 - Billing
@@ -61,7 +61,7 @@ Cloud SDK provides essential tools for cloud platform.
 - Manage Virtual Machine instances, networks, firewalls, and disk storage
 - Spin up a Kubernetes Cluster with a single command
 
-Project
+Projects
 
 - Managing APIs
 - Enabling billing
@@ -70,8 +70,8 @@ Project
 
 Zonal, Regional, and Global Resources
 
-- Zone: instances and persistent disks
-- Region: subnets and addresses
+- Zone: Instances and persistent disks
+- Region: Subnets and addresses
 - Global: VPC Network and firewall
 
 ---
@@ -86,7 +86,7 @@ We recommend using Chrome browser during the workshop.
 1. Enter the username
 1. Enter the user password
 
-  Note: *Sometimes GCP asks for a verification code when it detects logins from unusual locations. It is security measure to keep the account protected. If this happens, please ask the instructor for the verification code.*
+    > Note: *Sometimes GCP asks for a verification code when it detects logins from unusual locations. It is security measure to keep the account protected. If this happens, please ask the instructor for the verification code.*
 
 1. In the top left corner select the project "Cloud Project XX", where XX is your account number
 
@@ -106,7 +106,7 @@ This will start a virtual machine in the cloud and give you access to a terminal
 
 ## Set computing zone and region
 
-1. When the shell is open, set your default compute zone and region:
+When the shell is open, set your default compute zone and region:
 
 ```shell
 export PROJECT_ID=$(gcloud config get-value project)
@@ -122,14 +122,14 @@ gcloud info
 
 Note that changing the zone will not change the region automatically.
 
-Every time you open new terminal you need to input these commands. Place them inside `~/.profile` file and they will be executed automatically each time you log in.
+Every time you open new terminal you need to input these commands. Place them inside the `~/.profile` file and they will be executed automatically each time you log in.
 
 ## Enable APIs
 
 As a project owner, you control which APIs are accessible for the project. Enable the APIs required for the workshop:
 
-```
-$ gcloud services enable --async \
+```shell
+gcloud services enable --async \
   container.googleapis.com \
   compute.googleapis.com \
   containerregistry.googleapis.com \
@@ -142,20 +142,23 @@ $ gcloud services enable --async \
 
 The operation runs asynchronously. You can check if the APIs are enabled for the project, but enabling all these apis will take about 5m.
 
-```
-$ gcloud services list --enabled
+```shell
+gcloud services list --enabled
 ```
 
 You can also connect to status of job by running command suggested:
 
-```
-$ gcloud beta services operations wait operations/acf.xxxx-xxxx-xxxx-xxxx-xxxx
+```shell
+gcloud beta services operations wait operations/acf.xxxx-xxxx-xxxx-xxxx-xxxx
 ```
 
 Once that completes or you waited about 5 minutes you can check services again:
 
+```shell
+gcloud services list --enabled
 ```
-$ gcloud services list --enabled
+
+```
 NAME                              TITLE
 bigquery-json.googleapis.com      BigQuery API
 cloudbuild.googleapis.com         Cloud Build API
@@ -173,39 +176,46 @@ storage-api.googleapis.com        Google Cloud Storage JSON API
 
 Validate count:
 
-```
-$ gcloud services list --enabled|grep -v NAME|wc -l
-12
+```shell
+gcloud services list --enabled|grep -v NAME|wc -l
 ```
 
 If some APIs are not enabled retry in sync mode
 
+```shell
+gcloud services enable compute.googleapis.com
 ```
-$ gcloud services enable compute.googleapis.com
+
+```
 Waiting for async operation operations/tmo-acf.8c2c26e0-4997-4378-964f-fdce6d0b9fec to complete...
 Operation finished successfully. The following command can describe the Operation details:
  gcloud services operations describe operations/tmo-acf.8c2c26e0-4997-4378-964f-fdce6d0b9fec
 ```
 
-```
-$ gcloud services list --enabled | grep compute
-compute.googleapis.com             Compute Engine API
+```shell
+gcloud services list --enabled | grep compute
 ```
 
 ## Download the lab source code from GitHub
 
 Clone the lab repository in your cloud shell, then `cd` into that dir:
 
-  ```
-  $ git clone https://github.com/Altoros/google-k8s-workshop-v2.git
-  Cloning into 'google-k8s-workshop'...
-  Username for 'https://github.com': altoros-training
-  Password for 'https://altoros-training@github.com':
-  remote: Counting objects: 78, done.
-  remote: Compressing objects: 100% (60/60), done.
-  remote: Total 78 (delta 11), reused 78 (delta 11), pack-reused 0
-  Unpacking objects: 100% (78/78), done.
+```shell
+git clone https://github.com/Altoros/google-k8s-workshop-v2.git
+```
 
-  $ cd google-k8s-workshop-v2
-  ```
+```
+Cloning into 'google-k8s-workshop'...
+Username for 'https://github.com': altoros-training
+Password for 'https://altoros-training@github.com':
+remote: Counting objects: 78, done.
+remote: Compressing objects: 100% (60/60), done.
+remote: Total 78 (delta 11), reused 78 (delta 11), pack-reused 0
+Unpacking objects: 100% (78/78), done.
+```
 
+```shell
+cd google-k8s-workshop-v2
+```
+
+Next: [Containers](02-containers.md)
