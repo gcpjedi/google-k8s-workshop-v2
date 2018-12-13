@@ -1,69 +1,72 @@
 # Configure GKE
 
-## Module objectives
+## Module Objectives
 
-1. Deploy basic GKE cluster
+1. Deploy a basic GKE cluster
 1. Node pools
 1. List available GKE versions
 1. Upgrades and auto upgrades
-1. Manage add ons
-1. Enable and test auto repair
+1. Manage add-ons
+1. Enable and test auto-repair
 1. Enable and test auto-scaling
 1. Deploy an IP Alias cluster
 ---
 
-## Deploy a basic GKE cluster
+## Deploy a Basic GKE Cluster
+1. Create a GKE cluster
 
-```shell
-gcloud container clusters create gke-workshop-0
-```
+  ```shell
+  gcloud container clusters create gke-workshop-0
+  ```
 
-It will take ~4 minutes for Google cloud to create a cluster for you.
+  > Note: you can specify the `--async` flag if you don't want to wait for the command to complete.
 
-If you want you can exit from this command (press `Ctrl + C`), the operation will continue to run in the background. You can check the status of the running operation by executing this command:
+  It will take ~4 minutes for Google Cloud to create a cluster for you.
 
-```shell
-gcloud container operations list
-```
+  If you want you can exit from this command (press `Ctrl + C`). The operation will continue to run in the background. You can check the status of the running operation by executing this command:
 
-```
-NAME                              TYPE            LOCATION    TARGET              STATUS_MESSAGE  STATUS   START_TIME                      END_TIME
-operation-1543617863286-a5458b9a  CREATE_CLUSTER  us-west1-b  gke-workshop-0                      RUNNING  2018-11-30T:44:23.286618213Z
-```
+  ```shell
+  gcloud container operations list
+  ```
 
-Another thing that you can do if you don't want to wait for the command completion is to specify `--async` flag.
+  ```
+  NAME                              TYPE            LOCATION    TARGET              STATUS_MESSAGE  STATUS   START_TIME                      END_TIME
+  operation-1543617863286-a5458b9a  CREATE_CLUSTER  us-west1-b  gke-workshop-0                      RUNNING  2018-11-30T:44:23.286618213Z
+  ```
 
-After the cluster is ready the corresponding operation will go to `DONE` state and cluster status will be `RUNNING`. You can check your cluster status using the following command:
+  Wait for the operation to reach a `DONE` status.
 
-```shell
-gcloud container clusters list
-```
+  Check your cluster status using the following command:
 
-```
-NAME            LOCATION    MASTER_VERSION  MASTER_IP      MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
-gke-workshop-0  us-west1-b  1.9.7-gke.11    35.233.246.13  n1-standard-1  1.9.7-gke.11  3          RUNNING
-```
+  ```shell
+  gcloud container clusters list
+  ```
 
-After the cluster is ready you can get its credentials.
+  ```
+  NAME            LOCATION    MASTER_VERSION  MASTER_IP      MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
+  gke-workshop-0  us-west1-b  1.9.7-gke.11    35.233.246.13  n1-standard-1  1.9.7-gke.11  3          RUNNING
+  ```
+  Wait for a `RUNNING` status.
 
-```shell
-gcloud container clusters get-credentials gke-workshop-0
-```
+1. Get the cluster credentials.
 
-Now you can use `kubectl` utility to connect to the cluster. For example, let's verify that the cluster is up and running by listing its nodes
+  ```shell
+  gcloud container clusters get-credentials gke-workshop-0
+  ```
 
-```shell
-kubectl get nodes
-```
+  Now you can use the `kubectl` utility to connect to the cluster. For example, let's verify that the cluster is up and running by listing its nodes
 
-This command should display all cluster nodes. In GCP console open 'Compute Engine' -> 'VM instances' to verify that each node has a corresponding VM.
+  ```shell
+  kubectl get nodes
+  ```
 
+  This command should display all cluster nodes. In GCP console open 'Compute Engine' -> 'VM instances' to verify that each node has a corresponding VM.
 
-## Node pools
+## Node Pools
 
-A node pool is a subset of node instances within a cluster that all have the same configuration. You can create a node pool in your cluster with local SSDs, a minimum CPU platform, preemptible VMs, a specific node image, larger instance sizes, or different machine types. To illustrate the point of using node pools let's create a preemptible node pool with a different machine-type.
+A node pool is a subset of node instances within a cluster that all have the same configuration. You can create a node pool in your cluster with local SSDs, a minimum CPU platform, preemptible VMs, a specific node image, larger instance sizes, or different machine types. To illustrate the point of using node pools, let's create a preemptible node pool with a different machine-type.
 
-Preemptible pools consist from VMs that last a maximum of 24 hours and provide no availability guarantees. Preemptible VMs are priced lower than standard VMs and it would make sense to use such pool for a noncritical workload or in case you have a lot of replicas of all your pods.
+Preemptible pools consist of VMs that last a maximum of 24 hours and provide no availability guarantees. Preemptible VMs are priced lower than standard VMs and it would make sense to use such pools for a noncritical workload or in case you have a lot of replicas of all your pods.
 
 ```shell
 gcloud container node-pools create new-pool \
@@ -79,7 +82,7 @@ In another terminal watch the stream of events from the nodes.
 kubectl get nodes --watch
 ```
 
-While the node pool is creating you can open `Compute Engine -> VM instances` and make sure that created nodes are indeed preemptible. If you click on instance details `Preemptibility` should be set to on. It will take a few minutes for the cluster to reconsile
+While the node pool is creating you can open `Compute Engine -> VM instances` and make sure that created nodes are indeed preemptible. If you click on instance details `Preemptibility` should be set to on. It will take a few minutes for the cluster to reconcile
 
 When the new node pool nodes are in `Ready` state we can try to simulate the steps that Google Kubernetes engine does under the hood when deleting a node pool.
 
@@ -95,19 +98,17 @@ When the new node pool nodes are in `Ready` state we can try to simulate the ste
     gke-gke-workshop-0-default-pool-66a39856-z9pp   Ready     <none>    3h        v1.9.7-gke.11
     ```
 
-1. Cordon the node so no new Pods will be scheduled
+1. For each `default-pool` node, Cordon the node so that new Pods will not be scheduled
 
     ```shell
     kubectl cordon gke-gke-workshop-0-default-pool-xxxxxxxx-xxxx
     ```
 
-1. Drain the node to evict all the Pods from it
+1. For each `default-pool` node, Drain the node to evict all the Pods from it
 
     ```shell
     kubectl drain gke-gke-workshop-0-default-pool-xxxxxxxx-xxxx --ignore-daemonsets
     ```
-
-1. Repeat with other nodes from the `default-pool`.
 
 1. Delete the default pool which now has no active Pods running.
 
@@ -117,9 +118,19 @@ When the new node pool nodes are in `Ready` state we can try to simulate the ste
 
 Now you should see only Nodes from a node-pool `new-pool`.
 
-## List available GKE versions
+## List Available GKE Versions
 
-You can see that cluster you deployed has a version. Let us see what versions are available for deployment.
+The cluster you deployed has a version. Use this command to view the `Master` and `Node` versions:
+```shell
+gcloud container clusters describe gke-workshop-0
+```
+Look for the following keys in the output:
+```shell
+currentMasterVersion: 1.10.9-gke.5
+currentNodeVersion: 1.10.9-gke.5
+```
+
+Let us see all the versions that are available for deployment.
 
 ```shell
 gcloud container get-server-config
@@ -127,20 +138,22 @@ gcloud container get-server-config
 
 The latest master version at the time of writing was `1.11.3`.
 
-## Upgrades and auto upgrades
+## Upgrades and Auto Upgrades
 
 If we are running an old version it would make sense to upgrade. There are 2 types of upgrades in GKE.
 
 - Master upgrades (upgrades the version of kubernetes master components)
 - Node upgrades (upgrades worker nodes)
 
-This type of upgrades should be executed separately. Let's first try to upgrade the master version.
+These types of upgrades should be executed separately. Let's first try to upgrade the master version.
 
 > Note that master can be upgraded only one minor version at a time
 
 ```shell
 gcloud container clusters upgrade gke-workshop-0 --cluster-version=1.10.9 --master --async
 ```
+
+> Note: This may take a few minutes
 
 You can check the status of the upgrade by checking the container operation
 
@@ -160,6 +173,8 @@ Try the following two methods to check the status of upgrading the nodes, make s
 gcloud beta container operations list --filter TYPE=UPGRADE_NODES
 ```
 
+> Note: This may take a few minutes
+
 ```shell
 watch kubectl get nodes
 ```
@@ -174,7 +189,7 @@ gcloud container node-pools create outdated \
   --cluster gke-workshop-0
 ```
 
-## Manage add-ons
+## Manage Add-ons
 
 Add-ons are optional components that extend general Kubernetes functionality. On GKE you may choose from:
 
@@ -184,28 +199,26 @@ Add-ons are optional components that extend general Kubernetes functionality. On
 - Istio
 - NetworkPolicy
 
-Default addons include HttpLoadBalancing and HorizontalPodAutoscaling
+Default add-ons include HttpLoadBalancing and HorizontalPodAutoscaling
 
-Let's update our cluster to user KubernetesDashboard addon.
-
-Find out using help the exact options to specify additional parameters.
+Let's update our cluster to use the KubernetesDashboard add-on.
 
 ```shell
 gcloud container clusters update gke-workshop-0 --update-addons KubernetesDashboard=ENABLED
 ```
 
-To access the dashboard first run
+To access the dashboard:
+1.
+  ```shell
+  kubectl proxy
+  ```
 
-```shell
-kubectl proxy
-```
+1. Open web preview on port `8001` and change url path to `/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/`
 
-Then open web preview on port `8001` and change url path to `/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/`
-
-Note, that on GKE Kubernetes dashboard is deprecated, you can use the GKE interface instead.
+> Note, that on GKE Kubernetes dashboard is deprecated, you can use the GKE interface instead.
 
 
-## Enable and test auto repair
+## Enable and Test Auto Repair
 
 When the auto-repair feature is on, GKE will check the health of your nodes periodically (approximately every 10 minutes). If the Node is not in `Ready` state or doesn't report state at all, GKE will re-create the Node.
 
@@ -239,11 +252,11 @@ We will turn the feature on and then delete one vm from the NodePool.
 
 1. Wait for some time to see if the node comes back. Preemptible nodes should come back very quickly.
 
-## Enable and test auto-scaling
+## Enable and Test Auto-Scaling
 
-One of the major benefits of the cloud is its elasticity. You allocate resources only when you need them. GKE supports this model with autoscaler.
+One of the major benefits of the cloud is its elasticity. You allocate resources only when you need them. GKE supports this model with Autoscaling.
 
-1. Enable cluster autoscaling
+1. Enable cluster Autoscaling
 
     ```shell
     gcloud container clusters update gke-workshop-0 \
@@ -253,7 +266,11 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
       --max-nodes 4
     ```
 
-1. Now create a workload. How about 5 nginx containers each requesting 2 Gb of memory?  (For now, we are not very interested in the content of the deployment file, because we will examine pods and deployment later)
+1. Now create a workload. How about 5 nginx containers each requesting 2 Gb of memory?  
+
+    (For now, we are not very interested in the content of the deployment file, because we will examine pods and deployment later)
+
+    Save this file as `test-deployment.yaml`
 
     ```yaml
     apiVersion: apps/v1
@@ -281,7 +298,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
             - containerPort: 80
     ```
 
-   Save the file as `test-deployment.yaml` and run the following command
+    Run the following command
 
     ```shell
     kubectl apply -f test-deployment.yaml
@@ -318,7 +335,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
     gke-gke-workshop-0-new-pool-8283d08d-xcnq   Ready     <none>    24m       v1.10.9-gke.7
     ```
 
-## Deploy an IP Alias cluster
+## Deploy an IP Alias Cluster
 
 Let's run the following 2 commands and compare the network ranges that are assigned to kubernetes pods and kubernetes nodes. Here are my results
 
@@ -350,7 +367,7 @@ As you can see the cluster is using the same range for pods and nodes. This is b
 gcloud compute instances create example-instance-1
 ```
 
-When the VM is ready ssh to it.
+When the VM is ready ssh into it.
 
 ```shell
 gcloud compute ssh example-instance-1
@@ -374,7 +391,7 @@ Now you can delete the example instance
 gcloud compute instances delete example-instance-1
 ```
 
-## Run GKE cluster
+## Run GKE Cluster
 
 At the end of the exercise please recreate the cluster using these commands. This will ensure that all have the same configuration during the training.
 
