@@ -313,3 +313,5 @@
 1. Resulting solution
 
     ![](img/k8s-configured-net-model.png)
+
+1. Check [Kubernetes Networking: How to Write Your Own CNI Plug-in with Bash](https://www.altoros.com/blog/kubernetes-networking-writing-your-own-simple-cni-plug-in-with-bash/) for more details.
