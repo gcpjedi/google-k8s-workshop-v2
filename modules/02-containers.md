@@ -11,9 +11,13 @@
 
 You'll use a very simple sample application—`gceme`—as the basis for your CD pipeline. `gceme` is written in Go and is located in the `sample-app` directory in this repo. When you run the `gceme` binary on a GCE instance, it displays the instance's metadata in a card:
 
-![](docs/img/info_card.png)
+![](img/info-card.png)
 
-The binary supports two modes of operation, designed to mimic a microservice. In backend mode, `gceme` will listen on a port (8080 by default) and return GCE instance metadata as JSON, with content-type=application/json. In frontend mode, `gceme` will query a backend `gceme` service and render that JSON in the UI you saw above. It looks roughly like this:
+The binary supports two modes of operation, designed to mimic a microservice.
+
+In backend mode, `gceme` will listen on a port (8080 by default) and return GCE instance metadata as JSON, with `content-type=application/json`.
+
+In frontend mode, `gceme` will query a backend `gceme` service and render that JSON in the UI you saw above. It looks roughly like this:
 
 ```
 -----------      ------------      ~~~~~~~~~~~~        -----------
@@ -39,15 +43,15 @@ A deployment is a supervisor for pods and replica sets, giving you fine-grained 
 
 ## Build application Docker image
 
-1. Open the GCP console from your browser. [GCP Console](https://console.cloud.google.com/) and open the Cloud Shell.
+1. Open the [GCP Console](https://console.cloud.google.com) from your browser and then open the Cloud Shell.
 
 1. Navigate to the `google-k8s-workshop/sample-app` folder
 
-    ```
-    $ cd google-k8s-workshop-v2/sample-app
+    ```shell
+    cd google-k8s-workshop-v2/sample-app
     ```
 
-    `google-k8s-workshop-v2` repository should be cloned in the previous exercise.
+    > Note: `google-k8s-workshop-v2` repository should be cloned in the previous exercise.
 
 1. Set the `IMAGE` variable and build the Docker image
 
@@ -68,11 +72,12 @@ A deployment is a supervisor for pods and replica sets, giving you fine-grained 
     * Reads the [Dockerfile](https://github.com/Altoros/google-k8s-workshop/blob/master/sample-app/Dockerfile#L15)
     * Creates a new container from the base image specified in the Dockerfile
     * Runs all commands from the Dockerfile
-    * Saves the container filesystem as a new Docker image  
+    * Saves the container filesystem as a new Docker image
 
 1. Push the image to the GCE Container Registry
+
     ```shell
-    $ docker push $IMAGE
+    docker push $IMAGE
     ```
     No authentication is required because you are already authenticated by the Cloud Shell
 
@@ -86,7 +91,7 @@ Now, instead of manually building the image and pushing it to the container regi
 
 1. In the `sample-app` folder create `cloudbuild.yaml` file with the following content.
 
-    ```
+    ```yaml
     steps:
     - name: 'gcr.io/cloud-builders/docker'
       args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sample-k8s-app', '.' ]
@@ -94,25 +99,25 @@ Now, instead of manually building the image and pushing it to the container regi
     - 'gcr.io/$PROJECT_ID/sample-k8s-app'
     ```
 
-    This is a Cloud Build configuration file that contains a single step: building the `sample-k8s-app` image. The build is taking place in a container that is created from `gcr.io/cloud-builders/docker` image. The command that we use to build our own image is almost identical to the one that we used in the previous exercise. The configuration file also contains `images` section. This section instructs the Cloud Build to push the image to the GCE Container Registry. 
+    This is a Cloud Build configuration file that contains a single step: building the `sample-k8s-app` image. The build is taking place in a container that is created from `gcr.io/cloud-builders/docker` image. The command that we use to build our own image is almost identical to the one that we used in the previous exercise. The configuration file also contains `images` section. This section instructs the Cloud Build to push the image to the GCE Container Registry.
 
 1. Submit the build
 
-    ```
-    $ gcloud builds submit --config cloudbuild.yaml .
+    ```shell
+    gcloud builds submit --config cloudbuild.yaml .
     ```
 
-1. In GCP console open 'Cloud Build' -> 'History' and verify that the build was successfully finished. 
+1. In GCP console open 'Cloud Build' -> 'History' and verify that the build was successfully finished.
 
-1. In GCP console open 'Container Registry' -> 'Images' and make sure that `sample-k8s-app` was recently updated. 
+1. In GCP console open 'Container Registry' -> 'Images' and make sure that `sample-k8s-app` was recently updated.
 
 
 ## Run application in the Cloud Shell
 
 1. Run database container
 
-    ```
-    $ docker run --rm \
+    ```shell
+    docker run --rm \
       --name db \
       -e MYSQL_ROOT_PASSWORD=root \
       -d mysql
@@ -131,15 +136,15 @@ Now, instead of manually building the image and pushing it to the container regi
 1. Run the backend container
 
     ```shell
-    $ docker run --rm \
+    docker run --rm \
       --name backend \
-      --link db:mysql \
+      --link db \
       -p 8081:8081 \
       -d $IMAGE \
       app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root
     ```
 
-    `--link db:mysql` [links](https://docs.docker.com/network/links/) the backend container to the database container
+    `--link db` [links](https://docs.docker.com/network/links/) the backend container to the database container
 
     `-p 8081:8081` expose port 8081 from the container as port `8081` on the host
 
@@ -150,7 +155,7 @@ Now, instead of manually building the image and pushing it to the container regi
 1. Run the frontend container
 
     ```shell
-    $ docker run --rm \
+    docker run --rm \
       --name frontend \
       --link backend \
       -p 8080:8080 \
@@ -162,59 +167,63 @@ Now, instead of manually building the image and pushing it to the container regi
 
 1. Verify that all containers are running
 
+    ```shell
+    docker ps
     ```
-    $ docker ps
+
+    ```
     CONTAINER ID        IMAGE                     COMMAND                  CREATED              STATUS              PORTS                    NAMES
-    594fec987c57        lexsys27/sample-k8s-app   "app -frontend=true …"   8 seconds ago        Up 6 seconds        0.0.0.0:8080->8080/tcp   frontend
-    684113a1910f        lexsys27/sample-k8s-app   "app -port=8081 -db-…"   21 seconds ago       Up 19 seconds       0.0.0.0:8081->8081/tcp   backend
+    594fec987c57        altoros/sample-k8s-app    "app -frontend=true …"   8 seconds ago        Up 6 seconds        0.0.0.0:8080->8080/tcp   frontend
+    684113a1910f        altoros/sample-k8s-app    "app -port=8081 -db-…"   21 seconds ago       Up 19 seconds       0.0.0.0:8081->8081/tcp   backend
     dd3bacf6e0f0        mysql                     "docker-entrypoint.s…"   About a minute ago   Up About a minute   3306/tcp, 33060/tcp      db
     ```
+
 1. Click on the `Web preview` button in you Cloud Shell and then select `Preview on port: 8080` This will allow you to connect to the app from your local machine. See this [link](https://cloud.google.com/shell/docs/using-web-preview) for more details about web preview.
 
 1. Check that the app is working
 
-    The application will show some information about the VM that hosts the app. We take this information from [GCP instance metadata](https://cloud.google.com/compute/docs/storing-retrieving-metadata)
+    The application will show some information about the VM that hosts the app. We take this information from [GCP instance metadata](https://cloud.google.com/compute/docs/storing-retrieving-metadata).
 
-    You should be able to add notes in the bottom box. Notes were added to demonstrate how the app can handle persistent data (in our case we store them in the mysql database)
+    You should be able to add notes in the bottom box. Notes were added to demonstrate how the app can handle persistent data (in our case we store them in the mysql database).
 
 
 ## Mount a persistent volume
 
 By default docker stores a container filesystem in a certain folder on the host machine. This means that if a container is deleted its data will be lost. Let's verify this.
 
-1. Open application UI, scroll to the bottom and add a few notes.
+1. Open the application UI, scroll to the bottom and add a few notes
 
-1. Stop `db container`
+1. Stop the `db` container
 
     ```
-    $ docker stop db
-    ``` 
+    docker stop db
+    ```
 
     Because of the fact that we run `db` container with `--rm` option the container is automatically deleted after we stop it.
 
 1. Recreate `db` container with a persistent volume
 
     ```
-    $ docker run --rm \
+    docker run --rm \
       --name db \
       -v $HOME/mysql_data:/var/lib/mysql \
       -e MYSQL_ROOT_PASSWORD=root \
       -d mysql
     ```
 
-1. Restart the `backend` app.
+1. Restart the `backend` app
 
     ```
-    $ docker stop backend
-    $ docker run --rm \
+    docker stop backend
+    docker run --rm \
       --name backend \
-      --link db:mysql \
+      --link db \
       -p 8081:8081 \
       -d $IMAGE \
       app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root
     ```
 
-    This step is required because the backend app creates a new database on startup if it doesn't exist. 
+    This step is required because the backend app creates a new database on startup if it doesn't exist.
 
 1. Make sure that now the data survives between db container restarts.
 
@@ -223,32 +232,78 @@ By default docker stores a container filesystem in a certain folder on the host 
 
 ### Explore how docker networking works
 
-1. Adopt the application to use docker host networking. Use [this](https://docs.docker.com/network/network-tutorial-host/) doc as an example how to use host networking. Make sure you delete `--link` and `-p` parameters and update startup commands to use `localhost` instead of individual containers DNS names.  
+1. Adopt the application to use docker host networking. Use [this](https://docs.docker.com/network/network-tutorial-host/) doc as an example how to use host networking. Make sure you delete `--link` and `-p` parameters and update startup commands to use `localhost` instead of individual containers DNS names.
 
 1. Use commands such as `ip addr show`, `ip route show` inside a container and on the Cloud Shell VM. Do this for containers running in both `bridge` and `host` modes. Make sure you understand how networking works in both cases. (You can use `iproute2` package to install ip utility on Ubuntu)
 
-### Examine docker filesystem
+<details><summary>SOLUTION - CLICK ME</summary>
+<p>
+
+```shell
+docker run --rm \
+  --name db \
+  --network host \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -d mysql
+
+docker run --rm \
+  --name backend \
+  --network host \
+  -d $IMAGE \
+  app -mode=backend -run-migrations -port=8081 -db-host=localhost -db-password=root
+
+docker run --rm \
+  --name frontend \
+  --network host \
+  -d $IMAGE \
+  app -mode=frontend -backend-service=http://localhost:8081
+```
+
+```shell
+sudo netstat -tulpn
+```
+
+</p>
+</details>
+
+### Examine Docker filesystem
 
 1. Use `GraphDriver -> Data` property of the  `docker inspect` command output to figure out the location of a container filesystem.
 1. Refer to the [docker documentation](https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-the-overlay2-driver-works) to understand the structure of the `/var/lib/docker/overlay2` folder and how image layers are represented on the host.
-1. Read [How container reads and writes work with overlay or overlay2](https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-container-reads-and-writes-work-with-overlay-or-overlay2) from docker documentation. Then try to edit a file inside a container, make sure that the file was copied from the container lower directory to the upper directory.
+1. Read [How container reads and writes work with overlay or overlay2](https://docs.docker.com/storage/storagedriver/overlayfs-driver/#how-container-reads-and-writes-work-with-overlay-or-overlay2) from docker documentation. Then try to edit a file inside a container, make sure that the file was copied from the image lower directory to the container upper directory.
+
+<details><summary>SOLUTION - CLICK ME</summary>
+<p>
+
+```shell
+docker inspect --format='{{.GraphDriver.Data}}' CONTAINER_ID
+```
+
+</p>
+</details>
 
 ### Examine how docker uses cgroups to enforce container limits and isolation
 
-1. Run a container with a memory limit 
-    ```
+1. Run a container with a memory limit
+
+    ```shell
     docker run --rm -d -m 128MB --name mem_limit nginx
     ```
+
 1. Use `docker ps` to get the container ID
-1. List all container cgroups 
-    ```
+1. List all container cgroups
+
+    ```shell
     find  /sys/fs/cgroup/ -name "<container-id>*"
     ```
+
 1. Find the one that has 'memory' in its path and navigate inside the cgroup folder.
 1. Open `memory.limit_in_bytes` file and compare it with the same file for a different container.
 
 ## Clean up
 
 ```shell
-$ docker stop $(docker ps -aq)
+docker stop $(docker ps -aq)
 ```
+
+Next: [Configure GKE](03-configure-gke.md)
