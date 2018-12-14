@@ -86,9 +86,9 @@ We recommend using Google's Chrome browser during the workshop.
 1. Enter the username
 1. Enter the user password
 
-  > Note: Sometimes GCP asks for a verification code when it detects logins from unusual locations. It is a security measure to keep the account protected. If this happens, please ask the instructor for the verification code.
+    > Note: Sometimes GCP asks for a verification code when it detects logins from unusual locations. It is a security measure to keep the account protected. If this happens, please ask the instructor for the verification code.
 
-1. In the top left corner select the project "XXXXXXXXXXXXX-yyyyyy", where XXXXXXXXXXXXX matches the name of the e-mail you were given.
+1. In the top left corner select the project "XXXXXXXXXXXXX-yyyyyy", where XXXXXXXXXXXXX matches the name of the e-mail you were given
 
 ## Cloud Shell
 
@@ -96,7 +96,7 @@ Console is the UI tool for managing cloud resources. Most of the exercises in th
 
 Click "Activate Cloud Shell" button in the top right corner.
 
-  ![](img/cloud-shell.png)
+![](img/cloud-shell.png)
 
 Now click the "Start Cloud Shell" button in the lower right of the dialog.
 
@@ -147,7 +147,7 @@ The operation runs asynchronously. You can check if the APIs are enabled for the
 gcloud services list --enabled
 ```
 
-**You can also connect to status of job by running command suggested:**
+You can also connect to status of job by running command suggested:
 
 ```shell
 gcloud beta services operations wait operations/acf.xxxx-xxxx-xxxx-xxxx-xxxx
@@ -181,7 +181,7 @@ Validate count:
 gcloud services list --enabled|grep -v NAME|wc -l
 ```
 
-Retry using sync mode if some APIs are not enabled
+Retry using sync mode if some APIs are not enabled.
 
 ```shell
 gcloud services enable compute.googleapis.com <...>
@@ -207,5 +207,7 @@ git clone https://github.com/Altoros/google-k8s-workshop-v2.git
 ```shell
 cd google-k8s-workshop-v2
 ```
+
+---
 
 Next: [Containers](02-containers.md)

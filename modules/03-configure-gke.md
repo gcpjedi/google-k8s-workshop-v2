@@ -10,57 +10,59 @@
 1. Enable and test auto-repair
 1. Enable and test auto-scaling
 1. Deploy an IP Alias cluster
+
 ---
 
 ## Deploy a Basic GKE Cluster
+
 1. Create a GKE cluster
 
-  ```shell
-  gcloud container clusters create gke-workshop-0
-  ```
+    ```shell
+    gcloud container clusters create gke-workshop-0
+    ```
 
-  > Note: you can specify the `--async` flag if you don't want to wait for the command to complete.
+    > Note: you can specify the `--async` flag if you don't want to wait for the command to complete.
 
-  It will take ~4 minutes for Google Cloud to create a cluster for you.
+    It will take ~4 minutes for Google Cloud to create a cluster for you.
 
-  If you want you can exit from this command (press `Ctrl + C`). The operation will continue to run in the background. You can check the status of the running operation by executing this command:
+    If you want you can exit from this command (press `Ctrl + C`). The operation will continue to run in the background. You can check the status of the running operation by executing this command:
 
-  ```shell
-  gcloud container operations list
-  ```
+    ```shell
+    gcloud container operations list
+    ```
 
-  ```
-  NAME                              TYPE            LOCATION    TARGET              STATUS_MESSAGE  STATUS   START_TIME                      END_TIME
-  operation-1543617863286-a5458b9a  CREATE_CLUSTER  us-west1-b  gke-workshop-0                      RUNNING  2018-11-30T:44:23.286618213Z
-  ```
+    ```
+    NAME                              TYPE            LOCATION    TARGET              STATUS_MESSAGE  STATUS   START_TIME                      END_TIME
+    operation-1543617863286-a5458b9a  CREATE_CLUSTER  us-west1-b  gke-workshop-0                      RUNNING  2018-11-30T:44:23.286618213Z
+    ```
 
-  Wait for the operation to reach a `DONE` status.
+    Wait for the operation to reach a `DONE` status.
 
-  Check your cluster status using the following command:
+    Check your cluster status using the following command:
 
-  ```shell
-  gcloud container clusters list
-  ```
+    ```shell
+    gcloud container clusters list
+    ```
 
-  ```
-  NAME            LOCATION    MASTER_VERSION  MASTER_IP      MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
-  gke-workshop-0  us-west1-b  1.9.7-gke.11    35.233.246.13  n1-standard-1  1.9.7-gke.11  3          RUNNING
-  ```
-  Wait for a `RUNNING` status.
+    ```
+    NAME            LOCATION    MASTER_VERSION  MASTER_IP      MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
+    gke-workshop-0  us-west1-b  1.9.7-gke.11    35.233.246.13  n1-standard-1  1.9.7-gke.11  3          RUNNING
+    ```
+    Wait for a `RUNNING` status.
 
 1. Get the cluster credentials.
 
-  ```shell
-  gcloud container clusters get-credentials gke-workshop-0
-  ```
+    ```shell
+    gcloud container clusters get-credentials gke-workshop-0
+    ```
 
-  Now you can use the `kubectl` utility to connect to the cluster. For example, let's verify that the cluster is up and running by listing its nodes
+    Now you can use the `kubectl` utility to connect to the cluster. For example, let's verify that the cluster is up and running by listing its nodes
 
-  ```shell
-  kubectl get nodes
-  ```
+    ```shell
+    kubectl get nodes
+    ```
 
-  This command should display all cluster nodes. In GCP console open 'Compute Engine' -> 'VM instances' to verify that each node has a corresponding VM.
+    This command should display all cluster nodes. In GCP console open 'Compute Engine' -> 'VM instances' to verify that each node has a corresponding VM.
 
 ## Node Pools
 
@@ -116,15 +118,18 @@ When the new node pool nodes are in `Ready` state we can try to simulate the ste
     gcloud container node-pools delete default-pool --cluster gke-workshop-0
     ```
 
-Now you should see only Nodes from a node-pool `new-pool`.
+    Now you should see only Nodes from a node-pool `new-pool`.
 
 ## List Available GKE Versions
 
 The cluster you deployed has a version. Use this command to view the `Master` and `Node` versions:
+
 ```shell
 gcloud container clusters describe gke-workshop-0
 ```
+
 Look for the following keys in the output:
+
 ```shell
 currentMasterVersion: 1.10.9-gke.5
 currentNodeVersion: 1.10.9-gke.5
@@ -142,7 +147,7 @@ The latest master version at the time of writing was `1.11.3`.
 
 If we are running an old version it would make sense to upgrade. There are 2 types of upgrades in GKE.
 
-- Master upgrades (upgrades the version of kubernetes master components)
+- Master upgrades (upgrades the version of Kubernetes master components)
 - Node upgrades (upgrades worker nodes)
 
 These types of upgrades should be executed separately. Let's first try to upgrade the master version.
@@ -208,12 +213,12 @@ gcloud container clusters update gke-workshop-0 --update-addons KubernetesDashbo
 ```
 
 To access the dashboard:
-1.
-  ```shell
-  kubectl proxy
-  ```
 
-1. Open web preview on port `8001` and change url path to `/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/`
+```shell
+kubectl proxy
+```
+
+Open web preview on port `8001` and change url path to `/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/`
 
 > Note, that on GKE Kubernetes dashboard is deprecated, you can use the GKE interface instead.
 
@@ -266,7 +271,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
       --max-nodes 4
     ```
 
-1. Now create a workload. How about 5 nginx containers each requesting 2 Gb of memory?  
+1. Now create a workload. How about 5 nginx containers each requesting 2 Gb of memory?
 
     (For now, we are not very interested in the content of the deployment file, because we will examine pods and deployment later)
 
@@ -337,7 +342,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
 
 ## Deploy an IP Alias Cluster
 
-Let's run the following 2 commands and compare the network ranges that are assigned to kubernetes pods and kubernetes nodes. Here are my results
+Let's run the following 2 commands and compare the network ranges that are assigned to Kubernetes Pods and Kubernetes Nodes. Here are my results:
 
 ```shell
 gcloud compute instances list | grep new-pool
@@ -407,4 +412,10 @@ gcloud container clusters create gke-workshop \
   --machine-type n1-standard-2
 ```
 
-Next: [Pods & Services](04-pods-and-services.md)
+```shell
+gcloud container clusters get-credentials gke-workshop
+```
+
+---
+
+Next: [Pods and Services](04-pods-and-services.md)

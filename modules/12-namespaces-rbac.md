@@ -1,11 +1,13 @@
 # Namespaces RBAC and IAM
 
-Module objectives
+## Module Objectives
 
 1. Create a namespace
 1. Add a user to the cluster
 1. Create role, assign it to the user and make sure it is enforced
 1. Create cluster role, assign it to the user and make sure it is enforced
+
+---
 
 ## Create a namespace
 

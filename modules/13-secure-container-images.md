@@ -7,6 +7,8 @@
 1. Redeploy the cluster with Binary Authorization enabled
 1. Configure and test custom binary authorization policy
 
+---
+
 ## Enable GCR Vulnerability Scanning
 
 Google container registry may scan images for known vulnerabilities. It will notify you by adding `Vulnerabilities` columen in the image build list. You may extend the support further by enabling Cloud Pub/Sub queue notifications to trigger automated response and Binary Authorisation to prevent insecure images from running on top of Kubernetes cluster.
