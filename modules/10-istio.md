@@ -1,6 +1,6 @@
 # Istio
 
-## Module objectives
+## Module Objectives
 
 1. Configuring & installing Istio
 1. Deploying a microservice with an istio sidecar

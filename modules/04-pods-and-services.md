@@ -176,7 +176,6 @@ In the previous exercise, we manually copied IP addresses to connect pods. This 
         app: gceme
     ```
 
-
 1. Update the `frontend` startup command
     ```yaml
     command: ["app", "-mode=frontend", "-backend-service=http://backend:8080", "-port=80"]

@@ -1,6 +1,6 @@
 # Pesistence
 
-## Module objectives
+## Module Objectives
 
 1. Use persistent volumes to store persistent data, map the volume to the container
 1. Convert persisten volume to persistent volume claim
