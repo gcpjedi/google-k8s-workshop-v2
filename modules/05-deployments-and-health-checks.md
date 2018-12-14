@@ -26,7 +26,7 @@ There are a couple of problems with our current setup.
     kubectl delete pod --all
     ```
 
-1. Open the `manifests/db.yml` file
+1. Open the `manifests/db.yaml` file
 
 1. Delete the top 2 lines
 
@@ -103,13 +103,14 @@ There are a couple of problems with our current setup.
     ```
 
 ## Scale/Update/Rollout/Rollback the Deployment
+
     ```shell
     kubectl get services
     ```
 
 ### Scale the Deployment
 
-1. Edit `manifests/backend.yml`. Update the number of replicas to 3 and apply changes.
+1. Edit `manifests/backend.yaml`. Update the number of replicas to 3 and apply changes.
 
 1. In your browser refresh the application several times. Notice that 'Container IP' field sometimes changes. This indicates that the request comes to a different backend pod.
 
@@ -125,7 +126,7 @@ There are a couple of problems with our current setup.
     docker push $IMAGE
     ```
 
-1. Update `manifests/backend.yml` to use the new version of the container image and apply the changes.
+1. Update `manifests/backend.yaml` to use the new version of the container image and apply the changes.
 
     Replace the image version in both the `initContainers` and `containers` sections.
 
@@ -190,7 +191,7 @@ If an app fails a `readinessProbe`, kubernetes will consider the container unhea
 
 For this exercise, we will use only a `readinessProbe`.
 
-1. Edit `manifests/backend.yml`,  add the following section into it and apply the changes.
+1. Edit `manifests/backend.yaml`,  add the following section into it and apply the changes.
     ```yaml
             readinessProbe:
               httpGet:
