@@ -1,11 +1,13 @@
 # Namespaces RBAC and IAM
 
-Module objectives
+## Module Objectives
 
 1. Create a namespace
 1. Add a user to the cluster
 1. Create role, assign it to the user and make sure it is enforced
 1. Create cluster role, assign it to the user and make sure it is enforced
+
+---
 
 ## Create a namespace
 
@@ -228,7 +230,3 @@ For the role to take effect you must bing it to the user.
 ## Optional exercise
 
 Delete `pods` permissions from the `worker` role and try to deploy `nginx`. What happens? Can you explain the outcomes?
-
-
-
-

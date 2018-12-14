@@ -1,15 +1,14 @@
-Monitoring and Logging
-====================
+# Monitoring and Logging
 
-Objectives
-----------
+## Module Objectives
 
-- enable Stackdriver logging
-- observe cluster logs
-- setup alert
+1. Enable Stackdriver logging
+1. Observe cluster logs
+1. Setup alert
 
-Enable logging
---------------
+---
+
+## Enable logging
 
 By default, when you create Kubernetes GKE cluster, the `--enable-cloud-logging` flag is automatically set.
 
@@ -17,8 +16,7 @@ Go to the GKE console to check this: https://console.cloud.google.com/kubernetes
 
 Make sure the "Stackdriver logging" checkbox is turned on.
 
-View logs
----------
+## View logs
 
 There are two types of logs: _container_ and _system_. Container logs are collected from the running containers. System logs are produced by cluster components like `kubelet` and `api`. There are also events like cluster creation that are produced by Google cloud.
 

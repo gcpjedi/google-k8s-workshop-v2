@@ -1,6 +1,6 @@
 # Securing Network and Container Runtime
 
-Module objectives
+## Module Objectives
 
 1. Create and test a network security policy
 1. Create and test a pod security policy
@@ -10,6 +10,8 @@ Module objectives
 1. Use Master Authorized Networks to secure access to the cluster master endpoint
 1. Enable Metadata Concealment to prevent pods from accessing certain VM metadata
 1. Enable and test Cloud IAP for the cluster
+
+---
 
 ## Create and test a network security policy
 

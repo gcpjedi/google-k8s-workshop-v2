@@ -1,4 +1,4 @@
-# Kubernetes Services Deep Dive
+# Services Deep Dive
 
 ### Exercise 1
 
@@ -152,11 +152,11 @@
     -A KUBE-SVC-XP4WJ6VSLGWALMW5 -m comment --comment "kube-system/default-http-backend:http" -j KUBE-SEP-GPHKOMS2PXBGUJUI
     -A KUBE-SERVICES -d 10.19.249.235/32 -p tcp -m comment --comment "default/backend:http has no endpoints" -m tcp --dport 8080 -j REJECT --reject-with icmp-port-unreachable
     ```
-    See networking slides for more detail. 
+    See networking slides for more detail.
 
 ### Exercise 2: Track iptables changes while redeploying the service
 
-Redeploy the service in different configurations and observe change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep simpleservice` command to keep track of the relevant iptables rules. 
+Redeploy the service in different configurations and observe change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep simpleservice` command to keep track of the relevant iptables rules.
 
 Try the following configurations.
 
