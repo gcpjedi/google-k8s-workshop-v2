@@ -396,11 +396,13 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
     ```shell
     kubectl exec -it db-0 bash
     ```
+
 1. Connect to the mysql database.
 
     ```shell
     mysql -u root -p$MYSQL_ROOT_PASSWORD
     ```
+
 1. Show databases.
 
     ```shell
@@ -422,7 +424,64 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
 
 ### Connect sample application to the MySQL cluster
 
-Modify `manifests/backend.yaml` to connect to the `galera-cluster` service. Use `kubectl logs` to troubleshoot and fix any issues you encounter.
+Modify and redeploy `manifests/backend.yaml` to connect to the `galera-cluster` service.
+
+Use `kubectl logs` to troubleshoot and fix any issues you encounter.
+
+<details><summary>SOLUTION - CLICK ME</summary>
+<p>
+
+1. If you still have the init and multi container remove them, leaving only the backend container.
+
+1. Change `-db-host=db` to `-db=host=galera-cluster` in the `manifests/backend.yaml`
+
+1. Exec inside one of the db Pods.
+
+    ```shell
+    kubectl exec -it db-0 bash
+    ```
+
+1. Connect to the mysql database.
+
+    ```shell
+    mysql -u root -p$MYSQL_ROOT_PASSWORD
+    ```
+
+1. Run the following commands:
+
+    ```sql
+    SELECT host FROM mysql.user WHERE User = 'root';
+    GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'root';
+    ```
+
+    > Note: By default, galera-cluster resricts access to localhost only, we are updating this to allow from all IPs
+
+1. Recreate the backend.
+
+    ```shell
+    kubectl apply -f manifests/backend.yaml
+    ```
+
+1. Connect to the frontend and add some notes.
+
+1. Exec inside one of the db Pods, connect to mysql like before and check the notes table in the sample_app database.
+
+    ```sql
+    select * from sample_app.notes;
+    ```
+
+    ```
+    +----+---------------------+---------------------+------------+---------------------+
+    | id | created_at          | updated_at          | deleted_at | note                |
+    +----+---------------------+---------------------+------------+---------------------+
+    |  1 | 2018-11-30 09:09:32 | 2018-11-30 09:09:32 | NULL       | Where are you from? |
+    |  2 | 2018-11-30 09:09:48 | 2018-11-30 09:09:48 | NULL       | I am from Ireland   |
+    +----+---------------------+---------------------+------------+---------------------+
+    2 rows in set (0.00 sec)
+    ```
+
+</p>
+</details>
 
 ### Use Persistent Volumes in the Stateful Set
 
