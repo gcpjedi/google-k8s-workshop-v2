@@ -1,10 +1,10 @@
 # CNI Networking (Demo)
 
-1. Kubernetes network model
+1. Kubernetes network model:
 
     ![](img/k8s-net-model.png)
 
-1. Create master VM
+1. Create master VM.
 
     ```shell
     gcloud compute instances create k8s-master \
@@ -14,7 +14,7 @@
         --can-ip-forward
     ```
 
-1. Create worker VM
+1. Create a worker VM.
 
     ```shell
     gcloud compute instances create k8s-worker \
@@ -24,14 +24,14 @@
         --can-ip-forward
     ```
 
-1. Install some prerequisite packages
+1. Install some prerequisite packages.
 
     ```shell
     sudo apt-get update
     sudo apt-get install -y docker.io apt-transport-https curl jq nmap iproute2
     ```
 
-1. Install kubeadm, kubelet, and kubectl
+1. Install `kubeadm`, `kubelet`, and `kubectl`.
 
     ```shell
     sudo su
@@ -42,15 +42,15 @@
     apt-get install -y kubeadm kubelet kubectl
     ```
 
-1. Start the cluster
+1. Start the cluster.
 
     ```shell
     sudo kubeadm init --pod-network-cidr=10.244.0.0/16
     ```
 
-1. Join the worker (copy the command from the previous command output)
+1. Join the worker (copy the command from the previous command output).
 
-1. Init kubectl
+1. Init `kubectl`.
 
     ```shell
     mkdir -p $HOME/.kube
@@ -58,7 +58,7 @@
     sudo chown $(id -u):$(id -g) $HOME/.kube/config
     ```
 
-1. Get pod subnets
+1. Get Pod subnets.
 
     ```shell
     kubectl describe node k8s-master | grep PodCIDR
@@ -76,9 +76,10 @@
     PodCIDR:                     10.244.1.0/24
     ```
 
-1. Create `/etc/cni/net.d/10-bash-cni-plugin.conf`
+1. Create `/etc/cni/net.d/10-bash-cni-plugin.conf`.
 
     Master:
+    
     ```json
     {
       "cniVersion": "0.3.1",
@@ -90,6 +91,7 @@
     ```
 
     Worker:
+    
     ```json
     {
       "cniVersion": "0.3.1",
@@ -100,9 +102,10 @@
     }
     ```
 
-1. Create the bridge
+1. Create the bridge.
 
     Master:
+    
     ```shell
     sudo brctl addbr cni0
     sudo ip link set cni0 up
@@ -110,15 +113,17 @@
     ```
 
     Worker:
+    
     ```shell
     sudo brctl addbr cni0
     sudo ip link set cni0 up
     sudo ip addr add 10.244.1.1/24 dev cni0
     ```
 
-1. Check generated routes
+1. Check generated routes.
 
     Master:
+    
     ```shell
     ip route | grep cni0
     ```
@@ -127,6 +132,7 @@
     ```
 
     Worker:
+    
     ```shell
     ip route | grep cni0
     ```
@@ -134,7 +140,7 @@
     10.244.1.0/24 dev cni0  proto kernel  scope link  src 10.244.1.1
     ```
 
-1. Create `/opt/cni/bin/bash-cni`
+1. Create `/opt/cni/bin/bash-cni`.
 
     ```shell
     #!/bin/bash -e
@@ -251,25 +257,25 @@
     esac
     ```
 
-1. Check node status
+1. Check node status.
 
     ```shell
     kubectl get node
     ```
 
-1. Untaint the master node
+1. Untaint the master node.
 
     ```shell
     kubectl taint nodes k8s-master node-role.kubernetes.io/master-
     ```
 
-1. Add sample deployment
+1. Add sample deployment.
 
     ```shell
     kubectl apply -f https://raw.githubusercontent.com/s-matyukevich/bash-cni-plugin/master/01_gcp/test-deployment.yml
     ```
 
-1. Get pod IPs
+1. Get Pod IPs.
 
     ```shell
     kubectl describe pod | grep IP
@@ -282,35 +288,23 @@
     IP:                 10.244.1.2
     ```
 
-1. Get inside one of the pods
+1. Get inside one of the Pods.
 
     ```shell
     kubectl exec -it bash-master bash
     ```
 
-1. Verify network conectivity
+1. Verify network connectivity
 
     ```shell
     ping 10.128.0.2 # can ping own host
-    ```
-
-    ```shell
     ping 10.128.0.3 # can’t ping different host
-    ```
-
-    ```shell
     ping 10.244.0.6 # can’t ping a container on the same host
-    ```
-
-    ```shell
     ping 10.244.1.3 # can’t ping a container on a different host
-    ```
-
-    ```shell
     ping 108.177.121.113 # can’t ping any external address
     ```
 
-1. Examine forwarding rules
+1. Examine forwarding rules.
 
     ```shell
     sudo iptables -S FORWARD
@@ -323,42 +317,42 @@
     -A FORWARD -i docker0 -o docker0 -j ACCEPT
     ```
 
-1. Allow forwarding
+1. Allow forwarding.
 
     ```shell
     sudo iptables -t filter -A FORWARD -s 10.244.0.0/16 -j ACCEPT
     sudo iptables -t filter -A FORWARD -d 10.244.0.0/16 -j ACCEPT
     ```
 
-1. Add masquerade rules
+1. Add masquerade rules.
 
     Master:
+    
     ```shell
     sudo iptables -t nat -A POSTROUTING -s 10.244.0.0/24 ! -o cni0 -j MASQUERADE
     ```
 
     Worker:
+    
     ```shell
     sudo iptables -t nat -A POSTROUTING -s 10.244.1.0/24 ! -o cni0 -j MASQUERADE
     ```
 
-1. Configure GCP routes
+1. Configure GCP routes.
 
     ```shell
     gcloud compute routes create k8s-master --destination-range 10.244.0.0/24 --network k8s --next-hop-address 10.128.0.2
     gcloud compute routes create k8s-worker --destination-range 10.244.1.0/24 --network k8s --next-hop-address 10.128.0.3
     ```
 
-1. Retest network conectivity
+1. Retest network conectivity.
 
-1. Resulting solution
+1. Resulting solution:
 
     ![](img/k8s-configured-net-model.png)
 
-<<<<<<< Updated upstream
-1. Check [Kubernetes Networking: How to Write Your Own CNI Plug-in with Bash](https://www.altoros.com/blog/kubernetes-networking-writing-your-own-simple-cni-plug-in-with-bash/) for more details.
-=======
+Check our blog post [Kubernetes Networking: How to Write Your Own CNI Plug-in with Bash](https://www.altoros.com/blog/kubernetes-networking-writing-your-own-simple-cni-plug-in-with-bash/) for more details.
+
 ---
 
 Next: [Services](09-services.md)
->>>>>>> Stashed changes
