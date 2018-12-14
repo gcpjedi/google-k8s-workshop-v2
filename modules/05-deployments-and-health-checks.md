@@ -2,15 +2,15 @@
 
 ## Module Objectives
 
-1. Convert pod to a deployment
-1. Scale/update/rollout/rollback the deployment
-1. Define custom health checks and liveness probes
-1. Use horizontal pod autoscaler
-1. Use jobs and cronjobs to schedule task execution
+- Convert a pod to a deployment
+- Scale/update/rollout/rollback the deployment
+- Define custom health checks and liveness probes
+- Use horizontal pod autoscaler
+- Use jobs and cronJobs to schedule task execution
 
 ---
 
-## Convert pod to a deployment
+## Convert a Pod to a Deployment
 
 There are a couple of problems with our current setup.
 
@@ -26,9 +26,9 @@ There are a couple of problems with our current setup.
     kubectl delete pod --all
     ```
 
-1. Open the `manifests/db.yaml` file.
+1. Open the `manifests/db.yaml` file
 
-1. Delete the following 2 lines:
+1. Delete the top 2 lines
 
     ```yaml
     apiVersion: v1
@@ -53,11 +53,9 @@ There are a couple of problems with our current setup.
       template:
     ```
 
-    Now your pod definition becomes a template for the newly created deployment.
+    Your pod definition becomes a template for the newly created deployment.
 
 1. Repeat this steps for the `frontend` and `backend` pods. Don't forget to change the name of the deployment and the `machLabels` element.
-
-1. Apply all 3 deployments.
 
 1. List deployments.
 
@@ -98,19 +96,27 @@ There are a couple of problems with our current setup.
     frontend-654b5ff445-b6fgs   1/1       Running   0          11m
     ```
 
-1. List services and connect to the frontend LoadBalancer service. Verify that the app is working fine.
+1. List Services and connect to the `frontend` LoadBalancer service's IP in a web browser. Verify that the app is working fine.
 
     ```shell
     kubectl get services
     ```
 
-## Scale/update/rollout/rollback the deployment
+## Scale/Update/Rollout/Rollback the Deployment
 
-1. Edit `manifests/backend.yaml` update number of replicas to 3 and apply changes.
+    ```shell
+    kubectl get services
+    ```
 
-1. In your browser refresh the application several times. Make sure that the ‘Container IP' field sometimes changes. This indicates that the request comes to a different backend instance.
+### Scale the Deployment
 
-1. Edit `main.go` file. Change `version` to `1.0.1` and save the file.
+1. Edit `manifests/backend.yaml`. Update the number of replicas to 3 and apply changes.
+
+1. In your browser refresh the application several times. Notice that 'Container IP' field sometimes changes. This indicates that the request comes to a different backend pod.
+
+### Update and Rollout the Deployment
+
+1. Edit `main.go` file. Change `version` to `1.0.1` and save the file. (Around line 60)
 
 1. Rebuild container image with a new tag.
 
@@ -122,13 +128,21 @@ There are a couple of problems with our current setup.
 
 1. Update `manifests/backend.yaml` to use the new version of the container image and apply the changes.
 
+    Replace the image version in both the `initContainers` and `containers` sections.
+
+    ```yaml
+    image: gcr.io/<PROJECT-ID>/sample-k8s-app:1.0.1
+    ```
+
+    > Note: replace `<PROJECT-ID>` with your project id.
+
 1. Watch how the pods are rolled out in real time.
 
     ```shell
     watch kubectl get pod
     ```
 
-1. Open the application in the browser and make sure the backend version is updated.
+1. Open the application in the browser and make sure the `backend` version is updated.
 
 1. View the deployment rollout history.
 
@@ -143,7 +157,9 @@ There are a couple of problems with our current setup.
     2         <none>
     ```
 
-1. Rollback to the previous revisions.
+### Rollback the Deployment
+
+1. Rollback to the previous revision
 
     ```shell
     kubectl rollout undo deployment/backend
@@ -151,40 +167,45 @@ There are a couple of problems with our current setup.
 
 1. Make sure the application now shows version `1.0.0` instead of `1.0.1`.
 
-## Define custom health checks and liveness probes
+## Define Custom Health Checks and Liveness Probes
 
-By default, Kubernetes assumes that a pod is ready to accept requests as soon as its container is ready and the main process starts running. At this point of time, Kubernetes services can redirect traffic to the pod. This can cause problems if the application needs some time to initialise. Let's reproduce this behaviour.
+By default, kubernetes assumes that a pod is ready to accept requests as soon as its container is ready and the main process starts running. Once this condition is met, kubernetes services will redirect traffic to the pod. This can cause problems if the application needs some time to initialize. Let's reproduce this behavior.
 
-1. Add `-delay=60` parameter to the backend startup command and apply changes. This will cause our app to sleep for a minute on startup.
+1. Add `-delay=60` parameter to the `backend` startup command and apply changes. This will cause our app to sleep for a minute on startup.
 
-1. Open the app in the web browser, for about a minute you should see an error.
+1. Open the app in the web browser. You should see the following error for about a minute:
 
     ```
     Error: Get http://backend:8080: dial tcp 10.51.249.99:8080: connect: connection refused
     ```
 
-    Now let's fix this problem by introducing a custom `readinessProbe` and `livenessProbe`. The first one tells Kubernetes what command or HTTP request it can execute to check that the application is ready. The second one indicates a command or request that Kubernetes should periodically run to check that a container is still healthy.
+Now let's fix this problem by introducing a `readinessProbe` and a `livenessProbe`.
 
-1. Edit `manifests/backend.yaml`, add a probe section and apply the changes.
+The `readinessProbe` and `livenessProbe` are used by Kubernetes to check the health of the containers in a pod. The probes can check either HTTP endpoints or run shell commands to determine the health of a container. The difference between readiness and liveness probes is subtle, but important.
 
+If an app fails a `livenessProbe`, kubernetes will restart the container.
+> Caution: a misconfigured `livenessProbe` could cause deadlock for an application to start. If an application takes more time than the probe allows, then the livenessProbe will always fail and the app will never successfully start. See [this document](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/) for how to adjust the timing on probes.
+
+If an app fails a `readinessProbe`, kubernetes will consider the container unhealthy and send traffic to other pods.
+> Note: unlike liveness, the pod is not restarted.
+
+For this exercise, we will use only a `readinessProbe`.
+
+1. Edit `manifests/backend.yaml`,  add the following section into it and apply the changes.
     ```yaml
-    readinessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
-    readinessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
+            readinessProbe:
+              httpGet:
+                path: /healthz
+                port: 8080
     ```
 
-    This 2 sections should go under `spec -> template -> spec -> containers[name=backend]` and should be aligned  together with `image`, `env` and `command` properties.
+    This section should go under `spec -> template -> spec -> containers[name=backend]` and should be aligned with `image`, `env` and `command` properties.
 
-1. Run `watch kubectl get pod` to see how Kubernetes is rolling out your pods. This time it will do it much slower, making sure that previous pods are ready before starting updating a new set of pods.
+1. Run `watch kubectl get pod` to see how kubernetes is rolling out your pods. This time it will do it much slower, making sure that previous pods are ready before starting a new set of pods.
 
-## Use horizontal autoscaling
+## Use Horizontal Autoscaler
 
-Now we will try to use horizontal autoscaling to automatically set number of backend instances based on the current load.
+Now we will use the horizontal autoscaler to automatically set the number of backend instances based on the current load.
 
 1. Scale the number of backend instances to 1.
 
@@ -220,7 +241,7 @@ Now we will try to use horizontal autoscaling to automatically set number of bac
     stress --cpu 60 --timeout 200
     ```
 
-1. In a different terminal window watch autoscaler status.
+1. In a different terminal window watch the autoscaler status.
 
     ```shell
     watch kubectl get hpa
@@ -231,17 +252,17 @@ Now we will try to use horizontal autoscaling to automatically set number of bac
     backend   Deployment/backend   149%/50%   1         3         3          13m
     ```
 
-    Wait until the autoscaler scales the number of backend pods to 3.
+    Wait until the autoscaler scales the number of `backend` pods to 3.
 
-1. Save autoscaler definition as a Kubernetes object and examine its content.
+1. Save the autoscaler definition as a Kubernetes object and examine its content.
 
     ```shell
     kubectl get hpa -o yaml > manifests/autoscaler.yaml
     ```
 
-## Use jobs and cronjobs to schedule task execution
+## Use Jobs and CronJobs to Schedule Task Execution
 
-Sometimes there is a need to run one-off tasks. You can use pods to do that, but if the task fails nobody will be able to track that and restart the pod. Kubernetes jobs provide a better alternative to run one-off tasks. Jobs can be configured to retry failed task several times. If you need to run a job on a regular basis you can use Cron Jobs. Now let's create a Cron Job that will do a database backup for us.
+Sometimes there is a need to run one-off tasks. You can use pods to do that, but if the task fails nobody will be able to track that and restart the pod. Kubernetes Jobs provide a better alternative to run one-off tasks. Jobs can be configured to retry failed task several times. If you need to run a Job on a regular basis you can use CronJobs. Now let's create a CronJob that will do a database backup for us.
 
 1. Save the following file as `manifests/backup.yaml` and apply the changes.
 
@@ -272,7 +293,7 @@ Sometimes there is a need to run one-off tasks. You can use pods to do that, but
               restartPolicy: OnFailure
     ```
 
-    Here we are creating a cron job that runs each minute. `backoffLimit` is set to 2 so the job will be retried 2 times in case of failure. The job runs `mysqldump` command that prints the content of the `sample_app` database to stdout so it will be available in the pod logs. (And yes, pod logs is the worst place to store a database backup 😄 )
+    This creates a CronJob that runs each minute. `backoffLimit` is set to 2 so the job will be retried 2 times in case of failure. The job runs the `mysqldump` command that prints the contents of the `sample_app` database to stdout. This will be available in the pod logs. (And yes, I know that pod logs is the worst place to store a database backup 😄  )
 
 1. Get the cronjob status.
 
@@ -285,7 +306,7 @@ Sometimes there is a need to run one-off tasks. You can use pods to do that, but
     backup    */1 * * * *   False     0         2m              25m
     ```
 
-1. After 1 minute a backup pod will be created, if you list the pods you should see the backup completed.
+1. After 1 minute a` backu`p pod will be created, if you list the pods you should see the backup completed.
 
     ```shell
     watch kubectl get pod
@@ -299,7 +320,7 @@ Sometimes there is a need to run one-off tasks. You can use pods to do that, but
     frontend-654b5ff445-bvf2j   1/1       Running     0          1h
     ```
 
-1. View backup pod logs and make sure that backup was completed successfully.
+1. Viewthe  `backup` pod logs and make sure that backup was completed successfully.
 
     ```shell
     kubectl logs <backup-pod-name>

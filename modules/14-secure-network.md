@@ -1,6 +1,6 @@
 # Securing Network and Container Runtime
 
-## Module Objectives
+## Module Objectives
 
 1. Create and test a network security policy
 1. Create and test a pod security policy
