@@ -1,6 +1,6 @@
 # Getting Started with GCP
 
-## Objectives
+## Module Objectives
 
 Before getting started, you first have to prepare the environment for the workshop.
 
