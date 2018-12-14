@@ -31,16 +31,16 @@ There are a couple of problems with our current setup.
 1. Delete the following 2 lines:
 
     ```yaml
-    apiVersion: v1
+    apiVersion: v1 
     kind: Pod
-    ```
+    ``` 
 
 1. Indent/add 4 more spaces in the beginning of each line. If you use vim for editing you can check [this](http://vim.wikia.com/wiki/Shifting_blocks_visually) link to learn how to easily shift blocks of text in vim.
 
 1. Add the following block to the top of the file:
 
     ```yaml
-    apiVersion: extensions/v1beta1
+    apiVersion: extensions/v1beta1 
     kind: Deployment
     metadata:
       name: db
@@ -162,20 +162,20 @@ By default, Kubernetes assumes that a pod is ready to accept requests as soon as
     ```
     Error: Get http://backend:8080: dial tcp 10.51.249.99:8080: connect: connection refused
     ```
-
+   
     Now let's fix this problem by introducing a custom `readinessProbe` and `livenessProbe`. The first one tells Kubernetes what command or HTTP request it can execute to check that the application is ready. The second one indicates a command or request that Kubernetes should periodically run to check that a container is still healthy.
 
 1. Edit `manifests/backend.yaml`, add a probe section and apply the changes.
 
     ```yaml
-    readinessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
-    readinessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
+            readinessProbe:
+              httpGet:
+                path: /healthz
+                port: 8080
+            readinessProbe:
+              httpGet:
+                path: /healthz
+                port: 8080
     ```
 
     This 2 sections should go under `spec -> template -> spec -> containers[name=backend]` and should be aligned  together with `image`, `env` and `command` properties.
@@ -190,7 +190,7 @@ Now we will try to use horizontal autoscaling to automatically set number of bac
 
     > Note: You can either modify `manifests/backend.yaml` file and apply changes or use `kubectl scale` command
 
-1. Apply autoscaling to the backend deployment.
+1. Apply autoscaling to the backend deployment. 
 
     ```shell
     kubectl autoscale deployment backend --cpu-percent=50 --min=1 --max=3
@@ -259,7 +259,7 @@ Sometimes there is a need to run one-off tasks. You can use pods to do that, but
             spec:
               containers:
               - name: backup
-                image: mysql:5.6
+                image: mysql:5.6 
                 command: ["/bin/sh", "-c"]
                 args:
                 - mysqldump -h db -u root -p$MYSQL_ROOT_PASSWORD sample_app

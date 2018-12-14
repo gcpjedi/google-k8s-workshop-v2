@@ -230,7 +230,3 @@ For the role to take effect you must bing it to the user.
 ## Optional exercise
 
 Delete `pods` permissions from the `worker` role and try to deploy `nginx`. What happens? Can you explain the outcomes?
-
-
-
-
