@@ -167,4 +167,6 @@ Try the following configurations.
 
 ## Cleanup.
 
-Revert the app to its initial state and apply the changes
+```
+kubectl delete -f sample-app.yml
+```

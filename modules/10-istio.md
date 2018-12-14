@@ -68,23 +68,17 @@ Now you are ready to deploy sample application to the Istio cluster.
 
 ## Deploying a microservice with an istio sidecar
 
-1. Delete everything from the default namespace
+1. Change `frontend` service type to Cluster IP.
 
+1. Inject sidecar container to the sample app
     ```
-    $ kubectl delete deployment --all
-    $ kubectl delete svc --all
-    $ kubectl delete statefulset --all
+    istioctl kube-inject -f sample-app.yml  > sample-app-istio.yml
     ```
-
-1. Label default namespace for sidecar injection
-    ```
-    $ kubectl label namespace default istio-injection=enabled
-    ```
-    Alternatively you can use `istioctl kube-inject` command to manually add sidecar container to each deployment.
+    Inspect the generated file. Alternatively you can label a namespace for automatic sidecar injection by assigning the `istio-injection=enabled` label to the namespace.
 
 1. Redeploy the sample app
     ```
-    $ kubectl apply -f backend-svc.yml -f backend.yml -f db-svc.yml -f db.yml -f frontend-svc.yml -f frontend.yml
+    kubectl apply -f sample-app-istio.yml
     ```
 
 1. Create Istio gateway
@@ -93,17 +87,17 @@ Now you are ready to deploy sample application to the Istio cluster.
     apiVersion: networking.istio.io/v1alpha3
     kind: Gateway
     metadata:
-    name: gceme-gateway
+      name: gceme-gateway
     spec:
-    selector:
+      selector:
         istio: ingressgateway # use istio default controller
-    servers:
-    - port:
-        number: 80
-        name: http
-        protocol: HTTP
+      servers:
+      - port:
+          number: 80
+          name: http
+          protocol: HTTP
         hosts:
-        - "*"
+          - "*"
     ```
 
 1. Create virtual service for the frontend
@@ -112,14 +106,14 @@ Now you are ready to deploy sample application to the Istio cluster.
     apiVersion: networking.istio.io/v1alpha3
     kind: VirtualService
     metadata:
-    name: gceme
+      name: gceme
     spec:
-    hosts:
-    - "*"
-    gateways:
-    - gceme-gateway
-    http:
-    - match:
+      hosts:
+      - "*"
+      gateways:
+      - gceme-gateway
+      http:
+      - match:
         - uri:
             exact: /
         - uri:
@@ -130,29 +124,28 @@ Now you are ready to deploy sample application to the Istio cluster.
         - destination:
             host: frontend
             port:
-            number: 80
+              number: 80
     ```
 
 1. Check gateway is created
 
-```shell
-$ k get gateway -n dev
-NAME            AGE
-gceme-gateway   3m
-```
+    ```shell
+    $ k get gateway -n dev
+    NAME            AGE
+    gceme-gateway   3m
+    ```
 
 1. Get Ingress IP info
 
-```shell
-# get data from LB
-export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
-export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
-export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
-```
+    ```shell
+    # get data from LB
+    export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+    export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+    export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
+    ```
 
-1. Change `frontend` service type to Cluster IP.
 
-    Now the app should be reachable through the Istio gateway on `$GATEWAY_URL`
+1. Now the app should be reachable through the Istio gateway on `$GATEWAY_URL`
 
 You can write notes and save them in the database. But you don't see majority of the information about GCE instance. This is because application gets this info from the `metadata.google.internal` server which is not part of the Istio mesh. We will learn how to exclude some IPs from the Istio policy later and for now let' proceed to the next exercise.
