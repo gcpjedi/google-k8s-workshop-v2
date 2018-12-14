@@ -1,6 +1,6 @@
 # Containers
 
-## Module objectives
+## Module Objectives
 
 1. Build an application Docker image
 1. Run an application locally
