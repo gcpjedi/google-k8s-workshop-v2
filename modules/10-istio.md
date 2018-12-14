@@ -156,6 +156,31 @@ Now you are ready to deploy sample application to the Istio cluster.
 
 You can write notes and save them in the database. But you don't see majority of the information about GCE instance. This is because application gets this info from the `metadata.google.internal` server which is not part of the Istio mesh. We will learn how to exclude some IPs from the Istio policy later and for now let' proceed to the next exercise.
 
+## Monitoring and tracing
+
+
+1. Set up a tunnel to Grafana.
+    ```
+    kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=grafana -o jsonpath='{.items[0].metadata.name}') 3000:3000 &
+    ```
+1. Open the app in a web browser and send a couple of requests.
+
+1. Open web preview at port `3000`- you should see grafana interface
+
+1. In the left panel click on `Dashboards -> Manage` and then select `istio` folder. You should see a lot of dashboards, let's check a couple of them.
+
+    * `Istio Mesh Dashboard` - this dashboard allows you to see the overal volume of the requests as well as number of failed requests and track requests latency. Refresh the frontend page several times, add a couple of notes and make sure you see a apike in global request volue graph and changes in overal request statistics.
+    * `Istio Service Dashboard` - more detail information about request statistics. You can use this dashboard to see the request statistics per service.
+    * `Istio Workload Dashboard` - this gives details about metrics for each workload and then inbound workloads (workloads that are sending request to this workload) and outbound services (services to which this workload send requests) for that workload.
+
+1. Set up a tunnel to ServiceGraph 
+
+    ```
+    kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=servicegraph -o jsonpath='{.items[0].metadata.name}') 8088:8088 &
+    ```
+
+1. Open web preview at port `8088` and append `dotviz` to the path. You should see sample-app service topology.
+
 ---
 
 Next: [Audit Logging](11-audit-logging.md)

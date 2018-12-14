@@ -92,5 +92,3 @@ In this exercise you will setup alert on new pod started. The alert is sent only
     ```shell
     kubectl run nginx --image=nginx --namespace=vip
     ```
-
--- didn't manage to get log-based alert metrcis for me
