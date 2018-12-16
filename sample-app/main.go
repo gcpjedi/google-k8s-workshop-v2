@@ -232,6 +232,8 @@ func frontendMode(port int, backendURL string) {
 			backendURL+"/add-note",
 			r.Body,
 		)
+		req.Header = r.Header // forward headers
+		req.Close = true
 		resp, err := client.Do(req)
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
