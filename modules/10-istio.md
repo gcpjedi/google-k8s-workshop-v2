@@ -181,6 +181,13 @@ You can write notes and save them in the database. But you don't see majority of
 
 1. Open web preview at port `8088` and append `dotviz` to the path. You should see sample-app service topology.
 
+1. Setup access to the Jaeger dashboard by using port-forwarding
+    ```
+    kubectl port-forward -n istio-system $(kubectl get pod -n istio-system -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 16686:16686 &
+    ```
+
+1. Open web preview at port `16686`. You should see the Jaeger dashboard.
+
 ---
 
 Next: [Audit Logging](11-audit-logging.md)

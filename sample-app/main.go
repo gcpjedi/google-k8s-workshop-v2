@@ -177,14 +177,15 @@ func frontendMode(port int, backendURL string) {
 
 	transport := http.Transport{DisableKeepAlives: true}
 	client := &http.Client{Transport: &transport}
-	req, _ := http.NewRequest(
-		"GET",
-		backendURL,
-		nil,
-	)
-	req.Close = true
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		req, _ := http.NewRequest(
+			"GET",
+			backendURL,
+			nil,
+		)
+		req.Header = r.Header // forward headers
+		req.Close = true
 		i := &Instance{}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -209,6 +210,11 @@ func frontendMode(port int, backendURL string) {
 	})
 
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		req, _ := http.NewRequest(
+			"GET",
+			backendURL,
+			nil,
+		)
 		resp, err := client.Do(req)
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
