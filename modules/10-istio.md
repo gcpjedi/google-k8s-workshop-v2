@@ -188,9 +188,11 @@ You can write notes and save them in the database. But you don't see majority of
 
 1. Open web preview at port `16686`. You should see the Jaeger dashboard.
 
-1. In the Jaegger UI select `Service=gceme`, `Operation=frontend.default.svc.cluster.local:80/` and click "Find Traces"
+1. Open the app and add some notes.
 
+1. In the Jaegger UI select `Service=gceme`, `Operation=frontend.default.svc.cluster.local:80/add-note` and click "Find Traces"
 
+1. Make sure that in the Jaeger UI you see all requests that you've just sent. Open one of the requests. You should see all sub-requests that were send in the context of main request (including request to the backend and request to the istio internal components)
 
 ---
 
