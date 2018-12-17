@@ -8,7 +8,6 @@
 1. Traffic Shifting
 1. Fault Injection
 1. Circuit Breaking
-1. Controlling Ingress traffic [Using Istio Ingress]
 1. Rate-limiting using Istio & Memorystore (Redis)”
 
 ---
@@ -215,13 +214,9 @@ Let's now see how istio can help us to add new features to our application. Let'
 
 1. At line 60 find `version` constant and change is from `1.0.0` to `1.0.1`
 
-1. In the `sample-app/templates` folder open `base.html` file.
-
-1. Replace all ocurances of the word `blue` to `orange` - this will make our app to look different.
-
 1. Now rebuild the app image with a new version tag and push it to the container registry. (Those commands shold be executed in the `sample-app` folder)
 
-    ```
+    ```shell
     export IMAGE_V1=gcr.io/$PROJECT_ID/sample-k8s-app:1.0.1
     docker build . -t $IMAGE_V1
     docker push $IMAGE_V1
@@ -233,27 +228,27 @@ Let's now see how istio can help us to add new features to our application. Let'
 
 1. Configure default namespace for automatic sidecar injection
 
-    ```
+    ```shell
     kubectl label namespace default istio-injection=enabled
     ```
 
 1. Apply changes as usual (without `istioctl kube-inject`)
-    ```
+    ```shell
     kubectl apply -f sample-app.yml
     ``` 
 
 1. Create destination rule for the backend service as `manifests/backend-dr.yml` and apply the changes.
 
-    ```
+    ```yaml
     apiVersion: networking.istio.io/v1alpha3
     kind: DestinationRule
     metadata:
-      name: backend
+      name: backend-dr
     spec:
       host: backend
       trafficPolicy:
-        loadBalancer:
-          simple: ROUND_ROBIN
+        tls:
+          mode: ISTIO_MUTUAL
       subsets:
       - name: v0
         labels:
@@ -273,18 +268,38 @@ Let's now see how istio can help us to add new features to our application. Let'
       name: backend-vs
     spec:
       hosts:
-      - backend 
+      - backend
       http:
       - route:
         - destination:
             host: backend
-            subset: v0 
+            subset: v0
           weight: 75
         - destination:
-            host: backend 
-            subset: v1 
-          weight: 25 
+            host: backend
+            subset: v1
+          weight: 25
     ```
+
+1. Open the app and refresh the page severl times. You should see `1.0.0` backend version in 75% of cases and `1.0.1` in 25%.
+
+## Fault Injection
+
+One of the most difficult aspect of testing microservice application is verifying that the application is resilient to failiers. Each service should not just assume that all its dependecies are available 100% of the time - instead it should be ready to handle any unexpected response of failer. Usually people manually shut down application instances or block application ports in order to simulate failers. Istio provides us with a much better way: fault injection.
+
+1. Modify `manifests/backend-vs.yml` and add the following lines to `spec -> http[0]` (if you simply append them to the end of the file it should work fine). Redeploy the service
+
+    ```
+        fault:
+          delay:
+            fixedDelay: 3s
+            percent: 50
+    ``` 
+
+1. Open the app and verify that in 50% of the times it should take 3 seconds to comple the request.  
+
+In a similar way you can inject not only delays, but also failers.
+
 ---
 
 Next: [Audit Logging](11-audit-logging.md)
