@@ -285,7 +285,7 @@ Let's now see how istio can help us to add new features to our application. Let'
 
 ## Fault Injection
 
-One of the most difficult aspect of testing microservice application is verifying that the application is resilient to failiers. Each service should not just assume that all its dependecies are available 100% of the time - instead it should be ready to handle any unexpected response of failer. Usually people manually shut down application instances or block application ports in order to simulate failers. Istio provides us with a much better way: fault injection.
+One of the most difficult aspect of testing microservice application is verifying that the application is resilient to failures. Each service should not just assume that all its dependecies are available 100% of the time - instead it should be ready to handle any unexpected response of failure. Usually people manually shut down application instances or block application ports in order to simulate failure. Istio provides us with a much better way: fault injection.
 
 1. Modify `manifests/backend-vs.yml` and add the following lines to `spec -> http[0]` (if you simply append them to the end of the file it should work fine). Redeploy the service
 
@@ -298,9 +298,17 @@ One of the most difficult aspect of testing microservice application is verifyin
 
 1. Open the app and verify that in 50% of the times it should take 3 seconds to comple the request.  
 
-In a similar way you can inject not only delays, but also failers.
+In a similar way you can inject not only delays, but also failures.
 
 ## Retries and Circuit Breaking
+
+Now let's inject a native failure to the backend application to demonstrate how istio can help you to make you microservices more resiliant. 
+
+1. Modify `manifests/sample-app.yml` and add `-fail-percent=50` parameter to the backend deployment startup command (Leave `backend_v1` deployment untoched) Apply the changes.
+
+1. Delete fault definition from the `manifests/backend-vs.yml` Apply the changes. 
+
+1. Make sure that now application is failing 50% of the times (Failures should happen only if frontend connects to the `1.0.0` version of the backend)
 
 
 ---

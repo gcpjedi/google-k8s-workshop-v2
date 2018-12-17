@@ -136,6 +136,8 @@ func backendMode(port int, db *gorm.DB, failPercent int) {
 		n := rand.Intn(100)
 		if n < failPercent {
 			w.WriteHeader(http.StatusInternalServerError)
+			log.Println("Failure generated")
+			return
 		}
 		i := newInstance(db)
 		raw, _ := httputil.DumpRequest(r, true)
