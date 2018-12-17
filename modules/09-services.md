@@ -7,17 +7,18 @@
 
 ---
 
-## Recreate the sample application using different Service types
+## Recreate the Sample Application Using Different Service Types
 
-1. Delete everything from the default Namespace.
+1. Delete everything from the default Namespace
 
     ```shell
     kubectl delete deployment --all
     kubectl delete svc --all
     kubectl delete statefulset --all
+    kubectl delete hpa --all
     ```
 
-1. Redeploy the sample app (minimal version). Save the following as `manifests/sample-app.yaml` and apply the changes.
+1. Redeploy the sample app (minimal version). Save the following as `manifests/sample-app.yaml` and apply the changes
 
     > Note: Replace the image (gcr.io/$PROJECT_ID/sample-k8s-app:1.0.0)
 
@@ -148,10 +149,10 @@
               containerPort: 80
     ```
 
-1. SSH to any of the nodes and examine the generated [iptables rules](http://ipset.netfilter.org/iptables.man.html).
+1. In another Cloud Shell Terminal, SSH to any of the nodes and examine the generated [iptables rules](http://ipset.netfilter.org/iptables.man.html)
 
     ```shell
-    sudo iptables-save | grep simpleservice
+    sudo iptables-save | grep backend
     ```
 
     The output should resemble this:
@@ -167,16 +168,16 @@
     -A KUBE-SERVICES -d 10.19.249.235/32 -p tcp -m comment --comment "default/backend:http has no endpoints" -m tcp --dport 8080 -j REJECT --reject-with icmp-port-unreachable
     ```
 
-## Modify a Service and track iptables changes
+## Modify a Service and Track iptables Changes
 
-Redeploy the backend service in different configurations and observe change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep simpleservice` command to keep track of the relevant iptables rules.
+Redeploy the `backend` service in different configurations and observe the change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep backend` command to keep track of the relevant iptables rules
 
-Try the following configurations.
+Try the following configurations
 
-1. Scale down the number of pods, covered by the service, to 1.
-1. Scale up the number of pods, covered by the service, to 3.
-1. Change service type to NodePort.
-1. Change service type to LoadBalancer (or examine the rules generated for the frontend service).
+1. Scale down the number of pods, covered by the service, to 1
+1. Scale up the number of pods, covered by the service, to 3
+1. Change service type to NodePort
+1. Change service type to LoadBalancer (or examine the rules generated for the frontend service)
 
 ## Clean Up
 
