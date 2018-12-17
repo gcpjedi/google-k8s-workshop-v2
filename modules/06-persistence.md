@@ -2,14 +2,14 @@
 
 ## Module Objectives
 
-1. Use a Persistent Volumes to store data
-1. Convert Persistent Volume to Persistent Volume Claim
+1. Use Persistent Volumes to store data
+1. Convert a Persistent Volume to Persistent Volume Claim
 1. Create a Storage Class
-1. Use Statefull Set to deploy a mysql galera cluster
+1. Use StatefulSet to deploy a mysql galera cluster
 
 ---
 
-## Use a Persistent Volume to store data
+## Use a Persistent Volume to Store Data
 
 1. Create a data disk.
 
@@ -34,7 +34,7 @@
 
     > Note: Add it to the Pod spec not the Deployment spec!
 
-1. Now mount the Volume inside MySQL container.
+1. Now mount the Volume inside the MySQL container.
 
     ```yaml
     containers:
@@ -287,6 +287,11 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
         done
         # setting root password to $MYSQL_ROOT_PASSWORD
         mysql -u root  -e "use mysql; update user set authentication_string=password(\"$MYSQL_ROOT_PASSWORD\") where user='root';"
+
+        # Note: By default, galera-cluster resricts access to localhost only, we are updating this to allow from all IPs
+        mysql -u root -e "SELECT host FROM mysql.user WHERE User = 'root';"
+        mysql -u root -e "GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'root';"
+
         # stopping mysql because we have to restart after setting root password
         if ! kill -s TERM "$pid" || ! wait "$pid"; then
             echo >&2 'MySQL init process failed.'
@@ -318,7 +323,7 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
     kubectl delete svc db
     ```
 
-1. Save the following file as `mysql-galera-svc.yaml` and apply the changes.
+1. Save the following file as `manifests/mysql-galera-svc.yaml` and apply the changes.
 
     ```yaml
     apiVersion: v1
@@ -333,12 +338,12 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
       selector:
         app: gceme
         role: db
-      publishNotReadyAddresses: true
+      publishNotReadyAddresses: false
     ```
 
     The most important parameter here is `clusterIP: None`. This is called a [Headless service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services). In this case Kubernetes will not create a cluster IP for the service and DNS name `galera-cluster` will point directly to the list of underlying Pods.
 
-1. Save the following file as `mysql-galera.yaml` and apply the changes.
+1. Save the following file as `manifests/mysql-galera.yaml` and apply the changes.
 
     ```yaml
     apiVersion: apps/v1
@@ -389,7 +394,17 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
               successThreshold: 2
     ```
 
-1. Connect to the app and check that you can add notes.
+    > Note: replace the image name with the image just created
+
+1. Edit the backend deployment `manifests/backend.yaml`
+
+    1. If you still have the init and multi container remove them, leaving only the backend container.
+
+    1. In the startup command, change `-db-host=db` to `-db=host=galera-cluster`
+
+    1. Apply the changes
+
+1. Connect to the app and add some notes
 
 1. Exec inside one of the db Pods.
 
@@ -419,53 +434,7 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
     | sys                |
     +--------------------+
     ```
-
-## Optional Exercises
-
-### Connect sample application to the MySQL cluster
-
-Modify and redeploy `manifests/backend.yaml` to connect to the `galera-cluster` service.
-
-Use `kubectl logs` to troubleshoot and fix any issues you encounter.
-
-<details><summary>SOLUTION - CLICK ME</summary>
-<p>
-
-1. If you still have the init and multi container remove them, leaving only the backend container.
-
-1. Change `-db-host=db` to `-db=host=galera-cluster` in the `manifests/backend.yaml`
-
-1. Exec inside one of the db Pods.
-
-    ```shell
-    kubectl exec -it db-0 bash
-    ```
-
-1. Connect to the mysql database.
-
-    ```shell
-    mysql -u root -p$MYSQL_ROOT_PASSWORD
-    ```
-
-1. Run the following commands:
-
-    ```sql
-    SELECT host FROM mysql.user WHERE User = 'root';
-    GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'root';
-    ```
-
-    > Note: By default, galera-cluster resricts access to localhost only, we are updating this to allow from all IPs
-
-1. Recreate the backend.
-
-    ```shell
-    kubectl apply -f manifests/backend.yaml
-    ```
-
-1. Connect to the frontend and add some notes.
-
-1. Exec inside one of the db Pods, connect to mysql like before and check the notes table in the sample_app database.
-
+1. Show your notes
     ```sql
     select * from sample_app.notes;
     ```
@@ -480,8 +449,7 @@ Use `kubectl logs` to troubleshoot and fix any issues you encounter.
     2 rows in set (0.00 sec)
     ```
 
-</p>
-</details>
+## Optional Exercises
 
 ### Use Persistent Volumes in the Stateful Set
 
