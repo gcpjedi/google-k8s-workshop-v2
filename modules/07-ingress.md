@@ -2,7 +2,7 @@
 
 ## Module Objectives
 
-1. Serve app traffic from the ingress instead of LoadBalancer service
+1. Serve app traffic from the Ingress instead of LoadBalancer service
 1. Use static IP with Ingress
 1. Specify app domain
 1. Add SSL support
@@ -19,7 +19,7 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
 
 ## Use Ingress
 
-1. Change the frontend service type from LoadBalancer to NodePort.
+1. Change the `frontend` service type from `LoadBalancer` to `NodePort`.
 
     ```shell
     kubectl edit svc/frontend
@@ -29,7 +29,7 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
 
     * Save the file `Esc :wq`.
 
-    * Ingress forwards traffic to a Service (not directly to Pods). That's why we still need a Service wrapping our frontend Pod. However, it is not necessary for this Service to be of a LoadBalancer type, because now we will be accessing the frontend through Ingress and not through a dedicated frontend load balancer. The Service has to be of a NodePort type instead.
+    > Note: Ingress forwards traffic to a Service (not directly to Pods). That's why we still need a Service wrapping our frontend Pod. However, it is not necessary for this Service to be of a LoadBalancer type, because now we will be accessing the frontend through Ingress and not through a dedicated frontend load balancer. The Service has to be of a NodePort type instead.
 
 1. Check the Service type.
 
@@ -45,7 +45,7 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
     kubernetes   ClusterIP   10.111.0.1     <none>        443/TCP        1d
     ```
 
-1. Create file `manifests/ingress.yaml`.
+1. Create the file `manifests/ingress.yaml`.
 
     ```yaml
     apiVersion: extensions/v1beta1
@@ -62,7 +62,7 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
               servicePort: 80
     ```
 
-    This will expose the service `frontend` using relative path `/gceme`.
+    This will expose the service `frontend` using the relative path `/gceme`.
 
 1. Create the Ingress
 
@@ -86,7 +86,7 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
 
 ## Use Static IP
 
-By default, Ingress uses ephemeral IP which may change during the time. To create DNS record and issue SSL certificates one needs static IP. In this exercise, you will create one and use it with Ingress.
+By default, Ingress uses an ephemeral IP which may change during the time. To create a DNS record and issue SSL certificates one needs a static IP. In this exercise, you will create one and use it with Ingress.
 
 1. Create a static IP.
 
@@ -112,14 +112,14 @@ By default, Ingress uses ephemeral IP which may change during the time. To creat
         kubernetes.io/ingress.global-static-ip-name: "web-static-ip"
     ```
 
-    When you save the file Kubernetes will change the IP of the load balancer according to the annotation. You may get new IP from the Cloud Console or Ingress resource.
+    When you save the file, Kubernetes will change the IP of the load balancer according to the annotation. You may get new IP from the Cloud Console or Ingress resource.
 
 ## Optional Exercises
 
 ### Specify app domain
 
-1. Now, the `gceme` app should be accessed using a specific DNS name.
-1. Modify your `/etc/hosts` and set `gceme-training.com` domain to be resolved to the ingress IP address.
+1. The `gceme` app should be accessible using a specific DNS name.
+1. Modify your local `/etc/hosts` and set `gceme-training.com` domain to be resolved to the ingress IP address.
 1. Modify the Ingress definition appropriately. Find the section `Name-based virtual hosting` in [this](https://kubernetes.io/docs/concepts/services-networking/ingress/#name-based-virtual-hosting) document for reference.
 1. Access `gceme-training.com` from your web browser.
 1. Verify that you can't access `gceme` app using IP address anymore.
