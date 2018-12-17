@@ -289,7 +289,6 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
         mysql -u root  -e "use mysql; update user set authentication_string=password(\"$MYSQL_ROOT_PASSWORD\") where user='root';"
 
         # Note: By default, galera-cluster resricts access to localhost only, we are updating this to allow from all IPs
-        mysql -u root -e "SELECT host FROM mysql.user WHERE User = 'root';"
         mysql -u root -e "GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'root';"
 
         # stopping mysql because we have to restart after setting root password
