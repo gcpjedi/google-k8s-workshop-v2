@@ -2,95 +2,96 @@
 
 ## Module Objectives
 
-1. Enable GCR Vulnerability Scanning
+1. Enable GCR vulnerability scanning
 1. View and filter vulnerability occurrences
 1. Redeploy the cluster with Binary Authorization enabled
-1. Configure and test custom binary authorization policy
+1. Configure and test custom Binary Authorization policy
 
 ---
 
-## Enable GCR Vulnerability Scanning
+## Enable GCR vulnerability scanning
 
-Google container registry may scan images for known vulnerabilities. It will notify you by adding `Vulnerabilities` columen in the image build list. You may extend the support further by enabling Cloud Pub/Sub queue notifications to trigger automated response and Binary Authorisation to prevent insecure images from running on top of Kubernetes cluster.
+Google Container Registry may scan images for known vulnerabilities. It will notify you by adding `Vulnerabilities` column in the image build list. You may extend the support further by enabling Cloud Pub/Sub queue notifications to trigger automated response and Binary Authorisation to prevent insecure images from running on top of Kubernetes cluster.
 
-1. From Google Web Console go to Container Registry -> Settings
+1. From Google Web Console go to Container Registry -> Settings.
 
-1. In the Settings click `Enable Container Analysis API`
+1. In the Settings click `Enable Container Analysis API`.
 
     ![Enable API](img/gcr-enable.png)
 
-    Container registry scanning will be enabled automatically.
+    > Note: Container registry scanning will be enabled automatically.
 
 1. Now each image screen will show the vulnerabilities per build.
 
     ![Vulnerabilities - list](img/security-images.png)
 
-1. Click on the vulnerabilities column to show the list of vulnerabilities. Each has severity column which tells how dangerous is the bug, package column - the component of the image that has the bug and link to CVE describing it.
+1. Click on the vulnerabilities column to show the list of vulnerabilities. Each has severity column which tells how dangerous is the bug. The package column shows the component of the image that has the bug and link to CVE describing it.
 
-Scans currently work for Alpine, Ubuntu and Debian systems.
+    > Note: As of writing, scans currently support Alpine, Ubuntu and Debian systems.
 
 ## View and filter vulnerability occurrences
 
-To view summary of vulnerabilities for the application image one may use `gcloud` command.
+1. To view summary of vulnerabilities for the application image you can use a `gcloud` command.
 
-```shell
-$ gcloud beta container images list-tags --show-occurrences \
-  gcr.io/project-aleksey-zalesov/sample-k8s-app \
-  --occurrence-filter='kind="PACKAGE" AND has_prefix(resource_url, "gcr.io/project-aleksey-zalesov/sample-k8s-app")'
-DIGEST        TAGS   TIMESTAMP            VULNERABILITIES
-1dd9b5827cc3  1.0.2  2018-11-30T10:36:17  CRITICAL=5,HIGH=35,LOW=21,MEDIUM=184
-fbccfc8b25fe  1.0.0  2018-11-26T12:29:40  CRITICAL=5,HIGH=35,LOW=21,MEDIUM=184
-```
+    ```shell
+    gcloud beta container images list-tags --show-occurrences \
+      gcr.io/project-altoros-workshop/sample-k8s-app \
+      --occurrence-filter='kind="PACKAGE" AND has_prefix(resource_url, "gcr.io/project-altoros-workshop/sample-k8s-app")'
+    ```
 
-This example shows vulnerability summary for the image `sample-k8s-app` in the project `project-aleksey-zalesov`. Modify the request to show data on the image in your own repository.
+    ```
+    DIGEST        TAGS   TIMESTAMP            VULNERABILITIES
+    1dd9b5827cc3  1.0.2  2018-11-30T10:36:17  CRITICAL=5,HIGH=35,LOW=21,MEDIUM=184
+    fbccfc8b25fe  1.0.0  2018-11-26T12:29:40  CRITICAL=5,HIGH=35,LOW=21,MEDIUM=184
+    ```
 
-Unfortunately, to get vulnerabilities list you will need to talk to the API directly. There is no subcommands for `gcloud` tool yet.
+    This example shows vulnerability summary for the image `sample-k8s-app` in the project `project-altoros-workshop`. Modify the request to show data on the image in your own repository.
 
-First grab authentication token. You will put it into each request so Google Cloud can authenticate it and grant the same rights your user has.
+    > Note: To get a vulnerabilities list, we need to talk to the API directly. There is no subcommands for the `gcloud` tool yet.
 
-```shell
-gcloud config config-helper --format='value(credential.access_token)'
-```
+1. Get an authentication token. You will put it into each request so Google Cloud can authenticate it and grant the same rights your user has.
 
-```shell
-curl -s \
-  -XGET \
-  -H"Authorization: Bearer $(gcloud config config-helper --format='value(credential.access_token)')" \ https://containeranalysis.googleapis.com/v1beta1/projects/<PROJECT_ID>/occurrences?filter=kind%3D%22PACKAGE%22 | jq .
-```
+    ```shell
+    gcloud config config-helper --format='value(credential.access_token)'
+    ```
 
-`curl` is a toool to make HTTP requests from the command line.
+1. List vulnerability occurrences for your project.
 
-`-s` option tells to hide download statistics information
+    ```shell
+    curl -s -XGET \
+      -H "Authorization: Bearer $(gcloud config config-helper --format='value(credential.access_token)')" \
+      https://containeranalysis.googleapis.com/v1beta1/projects/<PROJECT_ID>/occurrences?filter=kind%3D%22PACKAGE%22 | jq .
+    ```
 
-`-XGET` sets the HTTP method `GET`. You typically use `GET` method to retrieve objects and `POST` to create/update the object. `DELETE` method is used to delete the object.
+    * `curl` is a tool to make HTTP requests from the command line.
+    * `-s` option tells to hide download statistics information.
+    * `-XGET` sets the HTTP method `GET`, a method to read data.
+    * `-H Authorization` sets the authorization header.
+    * `https://containeranalysis.googleapis.com/v1beta1/` is API we are going to use.
+    * `<PROJECT_ID>` is substituted forthe actual value of your project ID.
+    * `filter=kind%3D%22PACKAGE%22` shows only occurrences of type `PACKAGE`.
+    * `jq .` pretty-prints the json result.
 
-Next line sets the authentication header.
+1. Lets list the names of all the packages affected, modify and run the previous command.
 
-`https://containeranalysis.googleapis.com/v1beta1/` is API you going to use
+    ```shell
+    jq ".occurrences[].installation.installation.name"
+    ```
 
-Substitute `<PROJECT_ID>` to the actual value of your project ID.
+    > Note: The package name is under `.installation.installation.name`, we can filter this with `jq`
 
-`filter=kind%3D%22PACKAGE%22` show only occurences of type `PACKAGE`.
+    ```text
+    "libss2"
+    "procps"
+    "python-configobj"
+    "debconf"
+    ```
 
-`jq .` pretty-prints the json result
-
-What if I want to list the names of all the packages affected?
-
-The package name is under `.installation.installation.name`. To filter it with `jq` use `jq ".occurrences[].installation.installation.name"`
-
-```text
-"libss2"
-"procps"
-"python-configobj"
-"debconf"
-..
-```
-
-Well, there is much less then 287 items in the list. Where are all the others? GCP API paginates the output so there is only a limited number of items in each page. If there are more items in the list the output has `nextPageToken` item. One may repetedly query the results using `pageToken` parameter until get all items. This exercise requires writing code so we omit it from the workshop.
+There are less then 287 items in the list. Where are all the others? GCP API paginates the output so there is only a limited number of items in each page. If there are more items in the list the output has `nextPageToken` item. You may repeatedly query the results using the `pageToken` parameter until get all items. This exercise requires writing code so we omit it from the workshop.
 
 ## Redeploy the cluster with Binary Authorization enabled
 
-1. Enable binary auth API
+1. Enable binary auth API.
 
     ```shell
     gcloud services enable binaryauthorization.googleapis.com
@@ -100,129 +101,140 @@ Well, there is much less then 287 items in the list. Where are all the others? G
 
     ```shell
     gcloud beta container clusters create \
-        --enable-binauthz \
-        --zone europe-west1-d \
-        gke-workshop-1
+      --enable-binauthz \
+      --zone us-west2-b \
+      gke-workshop-1
     ```
 
-1. Take a look at cluster default policy
+1. Take a look at cluster default policy.
 
     ```shell
-    gcloud beta container binauthz policy export  > policy.yaml
-    cat policy.yaml
+    gcloud beta container binauthz policy export  > manifests/policy.yaml
+    cat manifests/policy.yaml
     ```
 
     Look through the policy [YAML reference doc](https://cloud.google.com/binary-authorization/docs/policy-yaml-reference).
 
-1. Now check that you can deploy containers with Binary Auth enabled. This due to default security rule is `ALWAYS_ALLOW`
+1. Now check that you can deploy containers with Binary Auth enabled. The default security rule is `ALWAYS_ALLOW`.
 
     ```shell
-    # test you can deploy with default policy
-    $ kubectl run nginx --image=nginx
-
-    $ kubectl get pods
-    NAME                   READY   STATUS    RESTARTS   AGE
-    nginx-8586cf59-zjxl4   1/1     Running   0          4s
-
-    $ kubectl delete deployment/nginx
-    deployment.extensions "nginx" deleted
+    kubectl run nginx --image=nginx
+    kubectl get pods
     ```
 
-### Deny policy
+    ```
+    NAME                   READY   STATUS    RESTARTS   AGE
+    nginx-8586cf59-zjxl4   1/1     Running   0          4s
+    ```
+
+    ```
+    kubectl delete deployment/nginx
+    ```
+
+### Deny Policy
 
 Let's modify the policy to deny all the containers except needed by GKE cluster.
 
-1. Modify the policy file: set `evaluationMode: ALWAYS_DENY`
+1. Modify the policy file `manifests/policy.yaml` and set `evaluationMode: ALWAYS_DENY`.
 
-1. Update the policy
+1. Update the policy.
 
     ```shell
     gcloud beta container binauthz policy import policy.yaml
     ```
 
-1. Try to deploy again
+1. Try to deploy again.
 
     ```shell
-    # test you can deploy with updated policy
-    $ kubectl run nginx --image=nginx
-
-    $ kubectl get pods
-    No resources found.
-
-    # why?
-    $ kubectl describe rs -l run=nginx
-    ..
-    Warning  FailedCreate  41s               replicaset-controller  Error creating: pods "nginx-8586cf59-lbnjh" is forbidden: image policy webhook backend denied one or more images: Denied by default admission rule. Overridden by evaluation mode
+    kubectl run nginx --image=nginx
+    kubectl get pods
     ```
 
-The policy works!
+    > Note: You will get a message `No resources found`, let’s get more information.
 
-### Break glass
+    ```
+    kubectl describe rs -l run=nginx
+    ```
+    ```
+    Warning  FailedCreate  41s  replicaset-controller  Error creating: pods "nginx-8586cf59-lbnjh" is forbidden: image policy webhook backend denied one or more images: Denied by default admission rule. Overridden by evaluation mode
+    ```
+
+    The policy works!
+
+### Break Glass
 
 There is a special case when you want to deploy without respect for the policy. It may happen during some emergencies.
 
-1. Edit `nginx` deployment
+1. Edit the `nginx` deployment.
 
     ```shell
     kubectl edit deployment/nginx
     ```
 
-1. Add annotation to the Pod spec (not Deployment one!)
+1. Add an annotation to the Pod spec (not Deployment).
 
     ```yaml
     annotations:
       alpha.image-policy.k8s.io/break-glass: "true"
     ```
 
-1. Pod will be created after you exit the editor
+1. The Pod will be created after you exit the editor.
 
     ```shell
-    $ kubectl get pods --watch
+    kubectl get pods --watch
+    ```
+
+    ```
     NAME                     READY   STATUS    RESTARTS   AGE
     nginx-7bf86b9677-sxqxm   1/1     Running   0          4s
     ```
 
-It is emergency scenario. What if I want to allow running all the images from the Docker official library?
+    It is emergency scenario, typically for production related issues.
 
 ### Whitelist Docker library
 
-Edit the policy and whitelist the Docker library. All images from the library have the prefix `registry.hub.docker.com/library/*`.  Don't forget to update the policy in the cloud. Then test the deployment with `nginx` image. What happened?
+What if I want to allow running all the images from the Docker official library?
 
-Because the controller doesn't know the nginx image comes from a standard library - it just applies regular expression filter! Let's edit the deployment and put the whole path to the image
+1. Edit the `manifests/policy.yaml` and whitelist the Docker registry.
 
-```yaml
-image: registry.hub.docker.com/library/nginx
-```
+    All images from the library have the prefix `registry.hub.docker.com/library/*`.
 
-Now you should see the container running.
+1. Test the Deployment with `nginx` image.
 
-Clean up
+    Because the controller doesn't know the `nginx` image comes from a standard registry, it just applies a regular expression filter!
 
-```shell
-$ kubectl delete deployment/nginx
-deployment.extensions "nginx" deleted
-```
+1. Edit the Deployment and put the whole path to the image.
 
-### Signing the images
+    ```yaml
+    image: registry.hub.docker.com/library/nginx
+    ```
 
-In this exercise you will set up an attestor. Entity like CI/CD system that signs the images with PGP and cluster will accept only the images signed by all the attestors defined in the policy.
+    You should now see the container running.
 
-1. Export configuration variables
-
-```shell
-ATTESTOR=test-attestor
-NOTE_ID=test-attestor-note
-PROJECT_ID=project-aleksey-zalesov
-```
-
-`ATTESTOR` is the id of the attestor
-
-`NOTE_ID` is the id of a note (image tage) in the container registry
-
-1. Create text file with the note payload
+1. Clean up by deleting the `nginx` Deployment .
 
     ```shell
-    cat > note_payload.json << EOM
+    kubectl delete deployment/nginx
+    ```
+
+### Signing images
+
+In this exercise you will set up an attestor. It is an entity-like CI/CD system that signs the images with PGP and clusters will accept only the images signed by all the attestors defined in the policy.
+
+1. Export configuration variables.
+
+    ```shell
+    ATTESTOR=test-attestor
+    NOTE_ID=test-attestor-note
+    PROJECT_ID=project-altoros-workshop
+    ```
+
+    * `ATTESTOR` is the id of the attestor.
+    * `NOTE_ID` is the id of a note (image tag) in the container registry
+
+1. Create text file `note.json` with the json payload.
+
+    ```json
     {
       "name": "projects/${PROJECT_ID}/notes/${NOTE_ID}",
       "attestation_authority": {
@@ -231,66 +243,65 @@ PROJECT_ID=project-aleksey-zalesov
         }
       }
     }
-    EOM
     ```
 
-1. Create a note
+1. Create a note.
 
     ```shell
-    $ curl -X POST \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $(gcloud auth print-access-token)"  \
-        --data-binary @./note_payload.json  \
-        "https://containeranalysis.googleapis.com/v1beta1/projects/${PROJECT_ID}/notes/?noteId=${NOTE_ID}"
-    {
-      "name": "projects/project-aleksey-zalesov/notes/test-attestor-note",
-      "kind": "ATTESTATION",
-      "createTime": "2018-12-03T14:08:45.821912Z",
-      "updateTime": "2018-12-03T14:08:45.821912Z",
-      "attestationAuthority": {
-        "hint": {
-          "humanReadableName": "Attestor Note"
+    curl -X POST \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $(gcloud auth print-access-token)"  \
+      --data-binary @note.json  \
+      "https://containeranalysis.googleapis.com/v1beta1/projects/${PROJECT_ID}/notes/?noteId=${NOTE_ID}"
+      {
+        "name": "projects/${PROJECT_ID}/notes/test-attestor-note",
+        "kind": "ATTESTATION",
+        "createTime": "2018-12-03T14:08:45.821912Z",
+        "updateTime": "2018-12-03T14:08:45.821912Z",
+        "attestationAuthority": {
+          "hint": {
+            "humanReadableName": "Attestor Note"
+          }
         }
       }
-    }
     ```
 
-1. Verify the note was created
+1. Verify the note was created.
 
     ```shell
-    $ curl \
-    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
-    "https://containeranalysis.googleapis.com/v1beta1/projects/${PROJECT_ID}/notes/${NOTE_ID}"
-    {
-      "name": "projects/project-aleksey-zalesov/notes/test-attestor-note",
-      "kind": "ATTESTATION",
-      "createTime": "2018-12-03T14:08:45.821912Z",
-      "updateTime": "2018-12-03T14:08:45.821912Z",
-      "attestationAuthority": {
-        "hint": {
-          "humanReadableName": "Attestor Note"
+    curl \
+      -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      "https://containeranalysis.googleapis.com/v1beta1/projects/${PROJECT_ID}/notes/${NOTE_ID}"
+      {
+        "name": "projects/${PROJECT_ID}/notes/test-attestor-note",
+        "kind": "ATTESTATION",
+        "createTime": "2018-12-03T14:08:45.821912Z",
+        "updateTime": "2018-12-03T14:08:45.821912Z",
+        "attestationAuthority": {
+          "hint": {
+            "humanReadableName": "Attestor Note"
+          }
         }
       }
-    }
     ```
 
-1. Create an attestor
+1. Create an attestor.
 
     ```shell
     gcloud beta container binauthz attestors create ${ATTESTOR} \
-    --attestation-authority-note=${NOTE_ID} \
-    --attestation-authority-note-project=${PROJECT_ID}
+      --attestation-authority-note=${NOTE_ID} \
+      --attestation-authority-note-project=${PROJECT_ID}
     ```
 
-    Verify the attestor was created
+1. Verify the attestor was created.
 
     ```shell
     gcloud beta container binauthz attestors list
     ```
 
-    Without PGP keypair associated attestor can do nothing useful.
+    > Note: Without a PGP keypair associated, the attestor can do nothing useful.
 
-1. Generate PGP kaypair
+1. Generate a PGP keypair.
 
     ```shell
     gpg --batch --gen-key <(
@@ -304,11 +315,13 @@ PROJECT_ID=project-aleksey-zalesov
     )
     ```
 
-1. List the keys
+1. List the keys.
 
     ```shell
-    $ gpg --list-keys "test-attestor@example.com"
+    gpg --list-keys "test-attestor@example.com"
+    ```
 
+    ```
     gpg: checking the trustdb
     gpg: marginals needed: 3  completes needed: 1  trust model: pgp
     gpg: depth: 0  valid:   1  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 1u
@@ -317,14 +330,14 @@ PROJECT_ID=project-aleksey-zalesov
     uid           [ultimate] "Test Attestor" <"test-attestor@example.com">
     ```
 
-1. Copy and save the public fingerprint (get from the output above)
+1. Copy and save the public fingerprint (get from the output above).
 
     ```shell
     FINGERPRINT=XXXXX
     gpg --armor --export ${FINGERPRINT} > generated-key.pgp
     ```
 
-1. Add PGP key to the attestor
+1. Add the PGP key to the attestor.
 
     ```shell
     gcloud beta container binauthz attestors public-keys add \
@@ -332,80 +345,97 @@ PROJECT_ID=project-aleksey-zalesov
         --public-key-file=generated-key.pgp
     ```
 
-1. Create a policy
+1. Create a policy `manifests/policy-attestor.yml`.
 
-    ```shell
-    cat > ./policy.yaml << EOM
-        admissionWhitelistPatterns:
-        - namePattern: gcr.io/google_containers/*
-        - namePattern: gcr.io/google-containers/*
-        - namePattern: k8s.gcr.io/*
-        - namePattern: gcr.io/stackdriver-agents/*
-        defaultAdmissionRule:
-          evaluationMode: REQUIRE_ATTESTATION
-          enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-          requireAttestationsBy:
-            - projects/${PROJECT_ID}/attestors/${ATTESTOR}
-        name: projects/${PROJECT_ID}/policy
-    EOM
-
-    gcloud beta container binauthz policy import policy.yaml
+    ```yaml
+    name: projects/${PROJECT_ID}/policy
+    admissionWhitelistPatterns:
+    - namePattern: gcr.io/google_containers/*
+    - namePattern: gcr.io/google-containers/*
+    - namePattern: k8s.gcr.io/*
+    - namePattern: gcr.io/stackdriver-agents/*
+    defaultAdmissionRule:
+      evaluationMode: REQUIRE_ATTESTATION
+      enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
+      requireAttestationsBy:
+        - projects/${PROJECT_ID}/attestors/${ATTESTOR}
     ```
 
-1. Test the policy
+1. Import the policy.
 
-    ```shell
-    $ kubectl apply -f manifests/frontend.yaml
-
-    $ kubectl get pods
-    No resources found.
+    ```
+    gcloud beta container binauthz policy import manifests/policy-attestor.yaml
     ```
 
-    One need to create attestation for the image to run it in the cluster.
-
-1. Create an attestation
+1. Test the policy.
 
     ```shell
-    # you will have different project-id and image signature
+    kubectl apply -f manifests/frontend.yaml
+    ```
+
+    ```
+    kubectl get pods
+    ```
+
+    > Note: You will get a message `No resources found`. This is okay as we still need to create attestation for the image to run it in the cluster.
+
+1. Create an attestation.
+
+    > Important: You will have different project-id and image signature!
+
+    ```shell
     IMAGE_PATH="gcr.io/project-aleksey-zalesov/sample-k8s-app"
     IMAGE_DIGEST="sha256:1dd9b5827cc3da6db2b89d8d0a4bc5d4c1caa98a5efba62da61bfd206ce03af3"
+    ```
 
+    ```shell
     gcloud beta container binauthz create-signature-payload \
-    --artifact-url=${IMAGE_PATH}@${IMAGE_DIGEST} > generated_payload.json
+    --artifact-url=${IMAGE_PATH}@${IMAGE_DIGEST} > signature.json
+    ```
 
-    # sign the payload
+    ```shell
     gpg \
-        --local-user "test-attestor@example.com" \
-        --armor \
-        --output generated_signature.pgp \
-        --sign generated_payload.json
+      --local-user "test-attestor@example.com" \
+      --armor \
+      --sign signature.json
+      --output signature.pgp \
+    ```
 
-    # create the attestation
+    ```
     gcloud beta container binauthz attestations create \
-        --artifact-url="${IMAGE_PATH}@${IMAGE_DIGEST}" \
-        --attestor="projects/${PROJECT_ID}/attestors/${ATTESTOR}" \
-        --signature-file=generated_signature.pgp \
-        --pgp-key-fingerprint="${FINGERPRINT}"
+      --artifact-url="${IMAGE_PATH}@${IMAGE_DIGEST}" \
+      --attestor="projects/${PROJECT_ID}/attestors/${ATTESTOR}" \
+      --signature-file=signature.pgp \
+      --pgp-key-fingerprint="${FINGERPRINT}"
+    ```
 
-    # verify
+1. Verify the attestation.
+
+    ```shell
     gcloud beta container binauthz attestations list \
         --attestor=$ATTESTOR --attestor-project=$PROJECT_ID
     ```
 
-1. Start a sample application again.
+1. Start the sample application again.
 
-    Note that this time you need to reference the image with SHA256 sum instead of tag, like this: `https://gcr.io/project-aleksey-zalesov/sample-k8s-app:1dd9b5827cc3da6db2b89d8d0a4bc5d4c1caa98a5efba62da61bfd206ce03af3`
+    > Note: that this time you need to reference the image with the SHA256 sum instead of the tag, like this: `https://gcr.io/project-altoros-workshop/sample-k8s-app:1dd9b5827cc3da6db2b89d8d0a4bc5d4c1caa98a5efba62da61bfd206ce03af3`
 
     This time the application should run correctly.
 
-    Start the backend pod, create attestation for the MySQL image and run db pod by yourslef.
+1. Start the backend pod.
+
+1. Create attestation for the MySQL image and run the `db` pod by yourself.
 
 ## Clean up
 
-After doing this execises delete the cluster to free the resources.
+After doing these exercises, delete the cluster to free the resources.
 
 ```shell
 gcloud beta container clusters delete \
-    --zone europe-west1-d \
-    gke-workshop-1
+  --zone us-west2-b \
+  gke-workshop-1
 ```
+
+---
+
+Next: [Securing the Network and Container Runtime](14-secure-network.md)

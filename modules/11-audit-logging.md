@@ -4,31 +4,33 @@
 
 1. Enable Stackdriver logging
 1. Observe cluster logs
-1. Setup alert
+1. Setup an alert
 
 ---
 
-## Enable logging
+## Enable Stackdriver logging
 
 By default, when you create Kubernetes GKE cluster, the `--enable-cloud-logging` flag is automatically set.
 
-Go to the GKE console to check this: https://console.cloud.google.com/kubernetes/clusters/details/europe-west1-d/gke-workshop
+Go to the GKE console to check the Kubernetes cluster details: [https://console.cloud.google.com/kubernetes/clusters/details/us-west2-b/gke-workshop](https://console.cloud.google.com/kubernetes/clusters/details/us-west2-b/gke-workshop)
 
 Make sure the "Stackdriver logging" checkbox is turned on.
 
-## View logs
+## Observe cluster logs
 
-There are two types of logs: _container_ and _system_. Container logs are collected from the running containers. System logs are produced by cluster components like `kubelet` and `api`. There are also events like cluster creation that are produced by Google cloud.
+There are two types of logs: `_container_` and `_system_`.
 
-View container logs
+* Container logs are collected from the running containers.
+* System logs are produced by cluster components like `kubelet` and `api`.
+* There are also events like cluster creation that are produced by Google Cloud.
 
 1. Go to the Logging dashboard of the Web Console.
 
-1. Switch to advanced mode
+1. Switch to advanced mode.
 
     ![Advanced filter](img/logging-advanced-filter.png)
 
-1. Edit the filter
+1. Edit the filter.
 
     ```shell
     resource.type="container"
@@ -37,21 +39,17 @@ View container logs
     resource.labels.container_name="backend"
     ```
 
-    You will see logs from the backend container.
+    * You will see logs from the backend container.
+    * While editing the filter, you can use auto completion ("Control+Space") to explore possible options.
 
-    While editing the filter, you can use auto competition ("Control+Space") to explore possible options.
+1. Find the record that shows backend container was started and ready to serve requests.
 
-1. Find the record that shows backend container was started and ready to serve requests
+    * The line container prints is "Operating in backend mode..."
+    * The message goes to the `textPayload` field.
+    * Operator `include` is `:`
+    * Prepare the filter statement yourself.
 
-    The line container prints is "Operating in backend mode..."
-
-    The message goes to the `textPayload` field.
-
-    Operator `include` is `:`
-
-    Prepare the filter statement yourself.
-
-1. Write a filter for audit operations on cluster
+1. Write a filter for audit operations on cluster.
 
     ```json
     resource.type=gke_cluster
@@ -59,18 +57,17 @@ View container logs
     protoPayload.@type:AuditLog
     ```
 
-    It will show you when cluster was created.
+    > Note: This filter will show you when cluster was created.
 
-    Delete the second line. Now you will see operations for all the clusters in the account.
+1. Delete the second line. Now you will see operations for all the clusters in the account.
 
-1. Some other interesting `resource.type` to explore are `k8s_cluster`, `k8s_node` and `k8s_pod`.
+1. Some other interesting `resource.type` values to explore are `k8s_cluster`, `k8s_node` and `k8s_pod`.
 
-Setup alert
------------
+## Setup an alert
 
-In this exercise you will setup alert on new pod started. The alert is sent only if pod was started in the namespace named `vip` (Very Importnat Pod).
+In this exercise you will setup alert on new pod started. The alert is sent only if the Pod was started in the Namespace named `vip` (Very Important Pod).
 
-1. Select log messages that are associated with this event
+1. Select log messages that are associated with this event.
 
     ```txt
     resource.type=k8s_pod
@@ -78,17 +75,20 @@ In this exercise you will setup alert on new pod started. The alert is sent only
     jsonPayload.metadata.namespace="vip"
     ```
 
-    No messages - as there is no such namespace yet!
+    > Note: There will be no messages, as there is no such namespace yet!
 
-1. Let's create such a namespace
+1. Let's create the VIP Namespace.
 
     ```shell
-    $ kubectl create ns vip
-    namespace/vip created
+    kubectl create ns vip
     ```
 
-1. Now start `nginx` pod and verify that message arrived to Stackdriver
+1. Now start `nginx` pod and verify that message arrived to Stackdriver.
 
     ```shell
     kubectl run nginx --image=nginx --namespace=vip
     ```
+
+---
+
+Next: [Namespaces RBAC and IAM](12-namespaces-rbac.md)

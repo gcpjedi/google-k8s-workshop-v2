@@ -9,13 +9,13 @@
 1. Manage add-ons
 1. Enable and test auto-repair
 1. Enable and test auto-scaling
-1. Deploy an IP Alias cluster
+1. Deploy an IP alias cluster
 
 ---
 
 ## Deploy a Basic GKE Cluster
 
-1. Create a GKE cluster
+1. Create a GKE cluster.
 
     ```shell
     gcloud container clusters create gke-workshop-0
@@ -64,7 +64,7 @@
 
     This command should display all cluster nodes. In GCP console open 'Compute Engine' -> 'VM instances' to verify that each node has a corresponding VM.
 
-## Node Pools
+## Node pools
 
 A node pool is a subset of node instances within a cluster that all have the same configuration. You can create a node pool in your cluster with local SSDs, a minimum CPU platform, preemptible VMs, a specific node image, larger instance sizes, or different machine types. To illustrate the point of using node pools, let's create a preemptible node pool with a different machine-type.
 
@@ -84,11 +84,11 @@ In another terminal watch the stream of events from the nodes.
 kubectl get nodes --watch
 ```
 
-While the node pool is creating you can open `Compute Engine -> VM instances` and make sure that created nodes are indeed preemptible. If you click on instance details `Preemptibility` should be set to on. It will take a few minutes for the cluster to reconcile
+While the node pool is creating you can open `Compute Engine -> VM instances` and make sure that created nodes are indeed preemptible. If you click on instance details `Preemptibility` should be set to on. It will take a few minutes for the cluster to reconcile.
 
 When the new node pool nodes are in `Ready` state we can try to simulate the steps that Google Kubernetes engine does under the hood when deleting a node pool.
 
-1. List all nodes in the default pool
+1. List all nodes in the default pool.
 
     ```shell
     kubectl get node | grep default-pool
@@ -100,13 +100,13 @@ When the new node pool nodes are in `Ready` state we can try to simulate the ste
     gke-gke-workshop-0-default-pool-66a39856-z9pp   Ready     <none>    3h        v1.9.7-gke.11
     ```
 
-1. For each `default-pool` node, Cordon the node so that new Pods will not be scheduled
+1. For each `default-pool` node, cordon the node so that new Pods will not be scheduled.
 
     ```shell
     kubectl cordon gke-gke-workshop-0-default-pool-xxxxxxxx-xxxx
     ```
 
-1. For each `default-pool` node, Drain the node to evict all the Pods from it
+1. For each `default-pool` node, Drain the node to evict all the Pods from it.
 
     ```shell
     kubectl drain gke-gke-workshop-0-default-pool-xxxxxxxx-xxxx --ignore-daemonsets
@@ -120,7 +120,7 @@ When the new node pool nodes are in `Ready` state we can try to simulate the ste
 
     Now you should see only Nodes from a node-pool `new-pool`.
 
-## List Available GKE Versions
+## List available GKE Versions
 
 The cluster you deployed has a version. Use this command to view the `Master` and `Node` versions:
 
@@ -143,12 +143,12 @@ gcloud container get-server-config
 
 The latest master version at the time of writing was `1.11.3`.
 
-## Upgrades and Auto Upgrades
+## Upgrades and auto-upgrades
 
 If we are running an old version it would make sense to upgrade. There are 2 types of upgrades in GKE.
 
-- Master upgrades (upgrades the version of Kubernetes master components)
-- Node upgrades (upgrades worker nodes)
+* Master upgrades (upgrades the version of Kubernetes master components)
+* Node upgrades (upgrades worker nodes)
 
 These types of upgrades should be executed separately. Let's first try to upgrade the master version.
 
@@ -194,7 +194,7 @@ gcloud container node-pools create outdated \
   --cluster gke-workshop-0
 ```
 
-## Manage Add-ons
+## Manage add-ons
 
 Add-ons are optional components that extend general Kubernetes functionality. On GKE you may choose from:
 
@@ -204,9 +204,9 @@ Add-ons are optional components that extend general Kubernetes functionality. On
 - Istio
 - NetworkPolicy
 
-Default add-ons include HttpLoadBalancing and HorizontalPodAutoscaling
+Default add-ons include `HttpLoadBalancing and` `HorizontalPodAutoscaling`.
 
-Let's update our cluster to use the KubernetesDashboard add-on.
+Let's update our cluster to use the `KubernetesDashboard` add-on.
 
 ```shell
 gcloud container clusters update gke-workshop-0 --update-addons KubernetesDashboard=ENABLED
@@ -222,12 +222,11 @@ Open web preview on port `8001` and change url path to `/api/v1/namespaces/kube-
 
 > Note, that on GKE Kubernetes dashboard is deprecated, you can use the GKE interface instead.
 
+## Enable and test auto-repair
 
-## Enable and Test Auto Repair
+When the auto-repair feature is on, GKE will check the health of your nodes periodically (approximately every 10 minutes). If the node is not in `Ready` state or doesn't report state at all, GKE will re-create the node.
 
-When the auto-repair feature is on, GKE will check the health of your nodes periodically (approximately every 10 minutes). If the Node is not in `Ready` state or doesn't report state at all, GKE will re-create the Node.
-
-We will turn the feature on and then delete one vm from the NodePool.
+We will turn the feature on and then delete one VM from the node pool.
 
 1. Enable auto-repair feature
 
@@ -249,7 +248,7 @@ We will turn the feature on and then delete one vm from the NodePool.
     gke-gke-workshop-0-new-pool-8283d08d-xcnq      us-west1-b      n1-standard-2               true         10.138.0.7       35.247.43.114    RUNNING
     ```
 
-1. Delete one of the instances
+1. Delete one of the instances.
 
     ```shell
     gcloud compute instances delete gke-gke-workshop-0-default-pool-1ffc4f39-6ml3
@@ -257,11 +256,11 @@ We will turn the feature on and then delete one vm from the NodePool.
 
 1. Wait for some time to see if the node comes back. Preemptible nodes should come back very quickly.
 
-## Enable and Test Auto-Scaling
+## Enable and test auto-scaling
 
 One of the major benefits of the cloud is its elasticity. You allocate resources only when you need them. GKE supports this model with Autoscaling.
 
-1. Enable cluster Autoscaling
+1. Enable cluster Autoscaling.
 
     ```shell
     gcloud container clusters update gke-workshop-0 \
@@ -275,7 +274,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
 
     (For now, we are not very interested in the content of the deployment file, because we will examine pods and deployment later)
 
-    Save this file as `test-deployment.yaml`
+    Save this file as `test-deployment.yaml`.
 
     ```yaml
     apiVersion: apps/v1
@@ -303,7 +302,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
             - containerPort: 80
     ```
 
-    Run the following command
+    Run the following command.
 
     ```shell
     kubectl apply -f test-deployment.yaml
@@ -324,9 +323,9 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
     nginx-66df689b7c-zwdn9   1/1       Running   0          5s
     ```
 
-    In my case 4 pods are scheduled to the nodes, and one is unscheduled.
+    In this case, 4 pods are scheduled to the nodes, and one is unscheduled.
 
-1. List nodes to make sure that additional worker node was created
+1. List nodes to make sure that additional worker node was created.
 
     ```shell
     kubectl get node
@@ -342,7 +341,7 @@ One of the major benefits of the cloud is its elasticity. You allocate resources
 
 ## Deploy an IP Alias Cluster
 
-Let's run the following 2 commands and compare the network ranges that are assigned to Kubernetes Pods and Kubernetes Nodes. Here are my results:
+Let's run the following 2 commands and compare the network ranges that are assigned to Kubernetes Pods and Kubernetes Nodes.
 
 ```shell
 gcloud compute instances list | grep new-pool
@@ -388,9 +387,9 @@ PING 10.60.3.3 (10.60.3.3) 56(84) bytes of data.
 64 bytes from 10.60.3.3: icmp_seq=2 ttl=63 time=0.305 ms
 ```
 
-As you can see your pods are directly accessible from another instance.
+As you can see your Pods are directly accessible from another instance.
 
-Now you can delete the example instance
+Now you can delete the example instance.
 
 ```shell
 gcloud compute instances delete example-instance-1
