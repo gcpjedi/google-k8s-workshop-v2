@@ -206,33 +206,6 @@ You can write notes and save them in the database. But you don't see majority of
 
 1. Make sure that in the Jaeger UI you see all requests that you've just sent. Open one of the requests. You should see all sub-requests that were send in the context of main request (including request to the backend and request to the Istio internal components)
 
-##  Route Rules and Virtual Services
-
-
-##  Request Routing
-
-
-##  Fault Injection
-
-
-##  Traffic Mirroring
-
-
-##  Circuit Breaking
-
-
-##  Controlling Ingress traffic [Using Istio Ingress]
-
-
-##  Traffic Shifting
-
-
-##  Rate-limiting using Istio & Memorystore (Redis)”
-
-
-## Clean Up
-
-
 
 ## Traffic Shifting 
 
@@ -264,7 +237,7 @@ Let's now see how istio can help us to add new features to our application. Let'
     kubectl label namespace default istio-injection=enabled
     ```
 
-1. Apply changes as usual 
+1. Apply changes as usual (without `istioctl kube-inject`)
     ```
     kubectl apply -f sample-app.yml
     ``` 
@@ -291,7 +264,7 @@ Let's now see how istio can help us to add new features to our application. Let'
     ``` 
     
 
-1. Create virtual service for the backend as `manifests/backend-vs.yml` and apply the changes
+1. Create a VirtualService for the backend as `manifests/backend-vs.yml` and apply the changes
 
     ```yaml
     apiVersion: networking.istio.io/v1alpha3
@@ -302,10 +275,7 @@ Let's now see how istio can help us to add new features to our application. Let'
       hosts:
       - backend 
       http:
-      - match:
-        - uri:
-            prefix: /
-        route:
+      - route:
         - destination:
             host: backend
             subset: v0 

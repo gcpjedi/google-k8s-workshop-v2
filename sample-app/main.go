@@ -163,7 +163,7 @@ func backendMode(port int, db *gorm.DB) {
 		fmt.Fprintf(w, "Ok\n")
 
 	})
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", port), nil))
 
 }
 
@@ -248,7 +248,7 @@ func frontendMode(port int, backendURL string) {
 			return
 		}
 	})
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", port), nil))
 }
 
 type assigner struct {
