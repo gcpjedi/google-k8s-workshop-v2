@@ -5,13 +5,10 @@
 1. Configuring & installing Istio
 1. Deploying a microservice with an istio sidecar
 1. Monitoring and tracing
-1. Route Rules and Virtual Services
-1. Request Routing
+1. Traffic Shifting
 1. Fault Injection
-1. Traffic Mirroring
 1. Circuit Breaking
 1. Controlling ingress traffic [Using Istio Ingress]
-1. Traffic Shifting
 1. Rate-limiting using Istio & Memorystore [Redis]"
 
 ---
@@ -88,7 +85,7 @@ Now you are ready to deploy sample application to the Istio cluster.
     kubectl apply -f sample-app-istio.yml
     ```
 
-1. Create Istio gateway
+1. Create Istio gateway as `manifests/istio-gateway.yml` and apply the chagnes
 
     ```yaml
     apiVersion: networking.istio.io/v1alpha3
@@ -107,13 +104,13 @@ Now you are ready to deploy sample application to the Istio cluster.
           - "*"
     ```
 
-1. Create virtual service for the frontend
+1. Create virtual service for the frontend as `frontend-vs.yml` and apply the changes
 
     ```yaml
     apiVersion: networking.istio.io/v1alpha3
     kind: VirtualService
     metadata:
-      name: gceme
+      name: frontend-vs
     spec:
       hosts:
       - "*"
@@ -190,10 +187,91 @@ You can write notes and save them in the database. But you don't see majority of
 
 1. Open the app and add some notes.
 
-1. In the Jaegger UI select `Service=gceme`, `Operation=frontend.default.svc.cluster.local:80/add-note` and click "Find Traces"
+1. In the Jaegger UI select `Service=frontend-vs`, `Operation=frontend.default.svc.cluster.local:80/add-note` and click "Find Traces"
 
 1. Make sure that in the Jaeger UI you see all requests that you've just sent. Open one of the requests. You should see all sub-requests that were send in the context of main request (including request to the backend and request to the istio internal components)
 
+## Traffic Shifting 
+
+Let's now see how istio can help us to add new features to our application. Let's imagine that we want to add a new feature to the app and test it on a small percent of our users (this is called 'Canary deployment')
+
+1. In the `sample-app` folder open `main.go` file. 
+
+1. At line 60 find `version` constant and change is from `1.0.0` to `1.0.1`
+
+1. In the `sample-app/templates` folder open `base.html` file.
+
+1. Replace all ocurances of the word `blue` to `orange` - this will make our app to look different.
+
+1. Now rebuild the app image with a new version tag and push it to the container registry. (Those commands shold be executed in the `sample-app` folder)
+
+    ```
+    export IMAGE_V1=gcr.io/$PROJECT_ID/sample-k8s-app:1.0.1
+    docker build . -t $IMAGE_V1
+    docker push $IMAGE_V1
+    ```
+
+1. Edit `manifests/sample-app.yml`. Duplicate `backend` deployment. Keep the name for the first deployment (`backend`) and name the second one `backend-v1`. Modify the first deployment in the following way: add `version: v0` label to the `spec -> selectors -> matchLabels` and to the `spec -> templates -> metadata -> labels` elements. Do the same for the second deployment, but this time use `version: v1` label instead. 
+
+1. Change the second deployment image. Change image tag from `1.0.0` to `1.0.1`
+
+1. Configure default namespace for automatic sidecar injection
+
+    ```
+    kubectl label namespace default istio-injection=enabled
+    ```
+
+1. Apply changes as usual 
+    ```
+    kubectl apply -f sample-app.yml
+    ``` 
+
+1. Create destination rule for the backend service as `manifests/backend-dr.yml` and apply the changes.
+
+    ```
+    apiVersion: networking.istio.io/v1alpha3
+    kind: DestinationRule
+    metadata:
+      name: backend
+    spec:
+      host: backend
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
+      subsets:
+      - name: v0
+        labels:
+          version: v0
+      - name: v1
+        labels:
+          version: v1
+    ``` 
+    
+
+1. Create virtual service for the backend as `manifests/backend-vs.yml` and apply the changes
+
+    ```yaml
+    apiVersion: networking.istio.io/v1alpha3
+    kind: VirtualService
+    metadata:
+      name: backend-vs
+    spec:
+      hosts:
+      - backend 
+      http:
+      - match:
+        - uri:
+            prefix: /
+        route:
+        - destination:
+            host: backend
+            subset: v0 
+          weight: 75
+        - destination:
+            host: backend 
+            subset: v1 
+          weight: 25 
+    ```
 ---
 
 Next: [Audit Logging](11-audit-logging.md)
