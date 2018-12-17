@@ -1,16 +1,27 @@
-# Services Deep Dive
+# Services
 
-### Exercise 1
+## Module Objectives
 
-1. Delete everything from the default namespace
+1. Recreate the sample application using different Service types
+1. Modify a Service and track iptables changes
 
+---
+
+## Recreate the sample application using different Service types
+
+1. Delete everything from the default Namespace.
+
+    ```shell
+    kubectl delete deployment --all
+    kubectl delete svc --all
+    kubectl delete statefulset --all
     ```
-    $ kubectl delete deployment --all
-    $ kubectl delete svc --all
-    $ kubectl delete statefulset --all
-    ```
-1. Redeploy the sample app (minimal version). Save the following as `manifests/sample-app.yml` and apply the changes
-    ```
+
+1. Redeploy the sample app (minimal version). Save the following as `manifests/sample-app.yaml` and apply the changes.
+
+    > Note: Replace the image (gcr.io/$PROJECT_ID/sample-k8s-app:1.0.0)
+
+    ```yaml
     apiVersion: v1
     kind: Service
     metadata:
@@ -137,11 +148,14 @@
               containerPort: 80
     ```
 
-1. SSH to any of the nodes and examine generated [iptables rules](http://ipset.netfilter.org/iptables.man.html).
-    ```
+1. SSH to any of the nodes and examine the generated [iptables rules](http://ipset.netfilter.org/iptables.man.html).
+
+    ```shell
     sudo iptables-save | grep simpleservice
     ```
+
     The output should resemble this:
+
     ```
     -A KUBE-NODEPORTS -p tcp -m comment --comment "kube-system/default-http-backend:http" -m tcp --dport 31213 -j KUBE-MARK-MASQ
     -A KUBE-NODEPORTS -p tcp -m comment --comment "kube-system/default-http-backend:http" -m tcp --dport 31213 -j KUBE-SVC-XP4WJ6VSLGWALMW5
@@ -152,11 +166,10 @@
     -A KUBE-SVC-XP4WJ6VSLGWALMW5 -m comment --comment "kube-system/default-http-backend:http" -j KUBE-SEP-GPHKOMS2PXBGUJUI
     -A KUBE-SERVICES -d 10.19.249.235/32 -p tcp -m comment --comment "default/backend:http has no endpoints" -m tcp --dport 8080 -j REJECT --reject-with icmp-port-unreachable
     ```
-    See networking slides for more detail.
 
-### Exercise 2: Track iptables changes while redeploying the service
+## Modify a Service and track iptables changes
 
-Redeploy the service in different configurations and observe change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep simpleservice` command to keep track of the relevant iptables rules.
+Redeploy the backend service in different configurations and observe change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep simpleservice` command to keep track of the relevant iptables rules.
 
 Try the following configurations.
 
@@ -165,8 +178,12 @@ Try the following configurations.
 1. Change service type to NodePort.
 1. Change service type to LoadBalancer (or examine the rules generated for the frontend service).
 
-## Cleanup.
+## Clean Up
 
 ```
-kubectl delete -f sample-app.yml
+kubectl delete -f manifests/sample-app.yaml
 ```
+
+---
+
+Next: [Istio](10-istio.md)

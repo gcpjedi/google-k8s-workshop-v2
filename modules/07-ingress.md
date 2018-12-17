@@ -124,12 +124,90 @@ By default, Ingress uses ephemeral IP which may change during the time. To creat
 1. Access `gceme-training.com` from your web browser.
 1. Verify that you can't access `gceme` app using IP address anymore.
 
+<details><summary>SOLUTION - CLICK ME</summary>
+<p>
+
+1. The `spec` rules section should look like this.
+
+    ```yaml
+    rules:
+    - host: gceme-training.com
+      http:
+        paths:
+        - backend:
+            serviceName: frontend
+            servicePort: 80
+          path: /gceme/*
+    ```
+
+    > Note: `/etc/hosts` should be modified on your local machine, not the Cloud Console.
+
+</p>
+</details>
+
 ### Use TLS
 
 1. Create a self-signed certificate for `gceme` app for the `gceme-training.com` domain [link](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl).
 1. Create a Kubernetes Secret for `gceme` app. The secret should contain the certificate and private key.
 1. Add a `tls` section to the ingress definition. You can use the `tls` section from [this](https://kubernetes.io/docs/concepts/services-networking/ingress/#types-of-ingress) document for reference.
 1. Redeploy, open app in a web browser and examine certificate details. Use [this](https://www.ssl2buy.com/wiki/how-to-view-ssl-certificate-details-on-chrome-56) link to see how a certificate can be viewed in chrome.
+
+<details><summary>SOLUTION - CLICK ME</summary>
+<p>
+
+1. Create a self-signed certificate.
+
+    ```shell
+    openssl req -nodes -x509 -newkey rsa:2048 -keyout gceme_key.pem -out gceme_cert.pem -days 365 -subj "/C=US/ST=California/L=Sunnyvale/O=Altoros/OU=Training/CN=gceme-training.com"
+    ```
+
+1. Import the secret to Kubernetes.
+
+    ```shell
+    kubectl create secret tls gceme-tls --cert=gceme_cert.pem --key=gceme_key.pem
+    ```
+
+1. Add the tls certificates to the Ingress spec.
+
+    ```yaml
+    tls:
+    - hosts:
+      - gceme-training.com
+      secretName: gceme-tls
+    ```
+
+1. The final `manifests/ingress.yaml` should look like the following:
+
+    ```yaml
+    apiVersion: extensions/v1beta1
+    kind: Ingress
+    metadata:
+      annotations:
+        kubernetes.io/ingress.global-static-ip-name: web-static-ip
+      name: gceme-ingress
+    spec:
+      rules:
+      - host: gceme-training.com
+        http:
+          paths:
+          - backend:
+              serviceName: frontend
+              servicePort: 80
+            path: /gceme/*
+      tls:
+      - hosts:
+        - gceme-training.com
+        secretName: gceme-tls
+    ```
+
+* You can troubleshoot certificate issues by viewing the Ingress events.
+
+    ```shell
+    kubectl describe ing gceme-ingress
+    ```
+
+</p>
+</details>
 
 ---
 
