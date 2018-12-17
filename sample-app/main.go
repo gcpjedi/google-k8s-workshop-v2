@@ -163,7 +163,12 @@ func backendMode(port int, db *gorm.DB) {
 		fmt.Fprintf(w, "Ok\n")
 
 	})
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", port), nil))
+	server := &http.Server{}
+	l, err := net.Listen("tcp4", fmt.Sprintf(":%v", port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Fatal(server.Serve(l))
 
 }
 
@@ -248,7 +253,12 @@ func frontendMode(port int, backendURL string) {
 			return
 		}
 	})
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", port), nil))
+	server := &http.Server{}
+	l, err := net.Listen("tcp4", fmt.Sprintf(":%v", port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Fatal(server.Serve(l))
 }
 
 type assigner struct {
