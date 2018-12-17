@@ -205,6 +205,7 @@ func frontendMode(port int, backendURL string) {
 			fmt.Fprintf(w, "Error: %s\n", err.Error())
 			return
 		}
+		log.Printf("Backend response: %s", body)
 		err = json.Unmarshal([]byte(body), i)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
