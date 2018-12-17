@@ -300,6 +300,9 @@ One of the most difficult aspect of testing microservice application is verifyin
 
 In a similar way you can inject not only delays, but also failers.
 
+## Retries and Circuit Breaking
+
+
 ---
 
 Next: [Audit Logging](11-audit-logging.md)

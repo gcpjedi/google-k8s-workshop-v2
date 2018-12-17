@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -70,6 +71,7 @@ func main() {
 	dbHost := flag.String("db-host", "db", "hostname of DB server")
 	dbUser := flag.String("db-user", "root", "DB username")
 	dbPassword := flag.String("db-password", "root", "DB password")
+	failPercent := flag.Int("fail-percent", 0, "A percent indicating how often the app will fail, applies only to backend")
 	flag.Parse()
 
 	if *showversion {
@@ -99,7 +101,7 @@ func main() {
 			}
 		}
 		defer db.Close()
-		backendMode(*port, db)
+		backendMode(*port, db, *failPercent)
 	} else if *mode == "" && *migrate {
 		db, err := gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/mysql", *dbUser, *dbPassword, *dbHost))
 		if err != nil {
@@ -128,9 +130,13 @@ func createDbAndMigrate(db *gorm.DB, user, password, host string) (*gorm.DB, err
 	return db, db.AutoMigrate(&Note{}).Error
 }
 
-func backendMode(port int, db *gorm.DB) {
+func backendMode(port int, db *gorm.DB, failPercent int) {
 	log.Println("Operating in backend mode...")
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		n := rand.Intn(100)
+		if n < failPercent {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		i := newInstance(db)
 		raw, _ := httputil.DumpRequest(r, true)
 		i.LBRequest = string(raw)
