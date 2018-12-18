@@ -124,26 +124,26 @@ By default, Ingress uses an ephemeral IP which may change during the time. To cr
 1. Access `gceme-training.com` from your web browser.
 1. Verify that you can't access `gceme` app using IP address anymore.
 
-<details><summary>SOLUTION - CLICK ME</summary>
-<p>
+    <details><summary>SOLUTION - CLICK ME</summary>
+    <p>
 
-1. The `spec` rules section should look like this.
+    1. The `spec` rules section should look like this.
 
-    ```yaml
-    rules:
-    - host: gceme-training.com
-      http:
-        paths:
-        - backend:
-            serviceName: frontend
-            servicePort: 80
-          path: /gceme/*
-    ```
+        ```yaml
+        rules:
+        - host: gceme-training.com
+          http:
+            paths:
+            - backend:
+                serviceName: frontend
+                servicePort: 80
+              path: /gceme/*
+        ```
 
-    > Note: `/etc/hosts` should be modified on your local machine, not the Cloud Console.
+        > Note: `/etc/hosts` should be modified on your local machine, not the Cloud Console.
 
-</p>
-</details>
+    </p>
+    </details>
 
 ### Use TLS
 

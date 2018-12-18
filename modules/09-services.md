@@ -35,7 +35,7 @@
         app: gceme
         role: db
     ---
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: db
@@ -77,7 +77,7 @@
         role: backend
         app: gceme
     ---
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: backend
@@ -122,7 +122,7 @@
         app: gceme
         role: frontend
     ---
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: frontend
@@ -172,12 +172,71 @@
 
 Redeploy the `backend` service in different configurations and observe the change to iptables. Make sure you understand the changes. Use `sudo iptables-save | grep backend` command to keep track of the relevant iptables rules
 
-Try the following configurations
+Try the following configurations:
 
-1. Scale down the number of pods, covered by the service, to 1
 1. Scale up the number of pods, covered by the service, to 3
-1. Change service type to NodePort
-1. Change service type to LoadBalancer (or examine the rules generated for the frontend service)
+1. Scale down the number of pods, covered by the service, to 1
+1. Change service type to `NodePort`
+1. Change service type to `LoadBalancer` (or examine the rules generated for the frontend service)
+
+<details><summary>SOLUTIONS - CLICK ME</summary>
+<p>
+
+NodePort:
+
+```yaml
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: backend
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      nodePort: 30080
+  selector:
+    role: backend
+    app: gceme
+```
+
+```shell
+kubectl get nodes -o yaml | grep InternalIP -C 2
+```
+
+You can modify the `frontend` Deployment to use the Node internal IP and port 30080.
+
+If you set up firewall rules, you will also be able to curl the backend using the external IP address (by default this is blocked).
+
+```shell
+curl https://<EXTERNAL-IP>:<NODE-PORT> -k
+```
+
+LoadBalancer:
+
+```yaml
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: backend
+spec:
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  selector:
+    role: backend
+    app: gceme
+```
+
+You can modify the `frontend` Deployment to use the `backend` Service external IP and port 80.
+
+> Note: As it takes some time to provision the load balancer on the infrastructure, you mus deploy the frontend separately once the external IP of the backend is available.
+
+</p>
+</details>
 
 ## Clean Up
 
