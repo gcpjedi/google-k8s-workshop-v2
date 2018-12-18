@@ -15,7 +15,7 @@
 
     ![](img/k8s-net-model.png)
 
-1. Create a master VM
+1. Create a master VM.
 
     ```shell
     gcloud compute instances create k8s-master \
@@ -25,7 +25,7 @@
         --can-ip-forward
     ```
 
-1. Create a worker VM
+1. Create a worker VM.
 
     ```shell
     gcloud compute instances create k8s-worker \
@@ -35,7 +35,7 @@
         --can-ip-forward
     ```
 
-1. Open two cloud-shell terminals, SSH into k8s-master in one, and k8s-worker on the other
+1. Open two cloud-shell terminals, SSH into `k8s-master` in one, and `k8s-worker` on the other.
 
     ```shell
     gcloud compute ssh "k8s-master"
@@ -45,14 +45,14 @@
     gcloud compute ssh "k8s-worker"
     ```
 
-1. On both Master and Worker nodes, Install prerequisite packages
+1. On both master and worker nodes install prerequisite packages.
 
     ```shell
     sudo apt-get update
     sudo apt-get install -y docker.io apt-transport-https curl jq nmap iproute2
     ```
 
-1. On both Master and Worker nodes, Install `kubeadm`, `kubelet`, and `kubectl`
+1. On both master and worker nodes install `kubeadm`, `kubelet`, and `kubectl`.
 
     ```
     sudo su
@@ -63,7 +63,7 @@
     apt-get update && apt-get install -y kubeadm kubelet kubectl
     ```
 
-1. On the Master node, Start the cluster
+1. On the master node start the cluster.
 
     ```shell
     sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
@@ -77,9 +77,9 @@
     kubeadm join 10.168.0.6:6443 --token abcdef.1234567890123456789 --discovery-token-ca-cert-hash sha256:12345
     ```
 
-1. On the Worker node, join the worker to the cluster. Run the command from the previous master terminal output
+1. On the worker node, join the worker to the cluster. Run the command from the previous master terminal output.
 
-1. On the Master node, Initialize `kubectl`
+1. On the master node, initialize `kubectl`.
 
     ```shell
     exit # Assuming still root, this must be run as a regular user
@@ -90,7 +90,7 @@
 
 ## Create a bash CNI
 
-1. On the Master Node, Get Pod subnets
+1. On the master node, get Pod subnets.
 
     ```shell
     kubectl describe node k8s-master | grep PodCIDR
@@ -108,13 +108,12 @@
     PodCIDR: 10.244.1.0/24
     ```
 
-1. On both Master and Worker nodes, create `/etc/cni/net.d/10-bash-cni-plugin.conf`
+1. On both master and worker nodes, create `/etc/cni/net.d/10-bash-cni-plugin.conf`.
 
     ```shell
     sudo mkdir -p /etc/cni/net.d/
     sudo touch /etc/cni/net.d/10-bash-cni-plugin.conf
     ```
-    Use the following contents:
 
     Master:
 
@@ -140,7 +139,7 @@
     }
     ```
 
-1. On both Master and Worker nodes, create the bridge
+1. On both master and worker nodes, create the bridge.
 
     Master:
 
@@ -158,7 +157,7 @@
     sudo ip addr add 10.244.1.1/24 dev cni0
     ```
 
-1. On both Master and Worker nodes, check generated routes
+1. On both master and worker nodes, check generated routes.
 
     Master:
 
@@ -178,7 +177,7 @@
     10.244.1.0/24 dev cni0  proto kernel  scope link  src 10.244.1.1
     ```
 
-1. On both Master and Worker nodes, create `/opt/cni/bin/bash-cni` as root and give it executable permissions `sudo chmod +x`
+1. On both master and worker nodes, create `/opt/cni/bin/bash-cni` as root and give it executable permissions `sudo chmod +x`.
 
     ```shell
     sudo touch /opt/cni/bin/bash-cni
@@ -300,28 +299,29 @@
     esac
     ```
 
-1. On the Master node, Check node status
+1. On the master node, check the node status.
 
     ```shell
     kubectl get node
     ```
 
-1. On the Master node, Untaint the master node
+1. Untaint the master node (to allow the schedulerto schedule pods everywhere).
 
     ```shell
     kubectl taint nodes k8s-master node-role.kubernetes.io/master-
     ```
 
 ## Deploy Pods and Test Connectivity
+
 **The following will be performed on the Master nodes (where `kubectl` is configured)**
 
-1. Add a sample deployment
+1. Add a sample Deployment.
 
     ```shell
     kubectl apply -f https://raw.githubusercontent.com/s-matyukevich/bash-cni-plugin/master/01_gcp/test-deployment.yml
     ```
 
-1. Get the Pod IPs
+1. Get the Pod IPs.
 
     ```shell
     kubectl describe pod | grep IP
@@ -334,13 +334,13 @@
     IP:                 10.244.1.2
     ```
 
-1. Exec into one of the Pods
+1. Exec into one of the Pods.
 
     ```shell
     kubectl exec -it bash-master bash
     ```
 
-1. Verify network connectivity
+1. Verify network connectivity.
 
     ```shell
     ping 10.168.0.6 # Can ping own host (e.g. k8s-master)
@@ -353,27 +353,27 @@
 
 ## Configure Host, Container and External Networking
 
-1. On the Worker node, Examine forwarding rules
+1. On the Worker node, examine forwarding rules.
 
     ```console
-    $ sudo iptables -S FORWARD
-    -P FORWARD DROP
-    -A FORWARD -m comment --comment "kubernetes forwarding rules" -j KUBE-FORWARD
-    -A FORWARD -j DOCKER-ISOLATION
-    -A FORWARD -o docker0 -j DOCKER
-    -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
-    -A FORWARD -i docker0 -o docker0 -j ACCEPT
+    sudo iptables -S FORWARD
+      -P FORWARD DROP
+      -A FORWARD -m comment --comment "kubernetes forwarding rules" -j KUBE-FORWARD
+      -A FORWARD -j DOCKER-ISOLATION
+      -A FORWARD -o docker0 -j DOCKER
+      -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+      -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
+      -A FORWARD -i docker0 -o docker0 -j ACCEPT
     ```
 
-1. On both Master and Worker nodes, Allow forwarding
+1. On both master and worker nodes, allow forwarding.
 
     ```shell
     sudo iptables -t filter -A FORWARD -s 10.244.0.0/16 -j ACCEPT
     sudo iptables -t filter -A FORWARD -d 10.244.0.0/16 -j ACCEPT
     ```
 
-1. On both Master and Worker nodes, Add masquerade rules
+1. On both master and worker nodes, add masquerade rules.
 
     Master:
 
@@ -387,14 +387,14 @@
     sudo iptables -t nat -A POSTROUTING -s 10.244.1.0/24 ! -o cni0 -j MASQUERADE
     ```
 
-1. On a regular cloud-shell window, Configure GCP routes
+1. On a regular cloud-shell window, configure GCP routes.
 
     ```shell
     gcloud compute routes create k8s-master --destination-range 10.244.0.0/24 --network default --next-hop-instance-zone us-west2-b --next-hop-instance k8s-master
     gcloud compute routes create k8s-worker --destination-range 10.244.1.0/24 --network default --next-hop-instance-zone us-west2-b --next-hop-instance k8s-worker
     ```
 
-1. Retest network connectivity by pinging all pods like previously
+1. Retest network connectivity, all pings should be successful (see previous exercise).
 
 1. Resulting solution:
 
@@ -404,13 +404,13 @@ Check our blog post [Kubernetes Networking: How to Write Your Own CNI Plug-in wi
 
 ## Clean Up
 
-1. Delete GCP routes
+1. Delete GCP routes.
 
     ```shell
     gcloud compute routes delete k8s-master k8s-worker --quiet
     ```
 
-1. Delete the k8s VMs
+1. Delete the k8s VMs.
 
     ```shell
     gcloud compute instances delete k8s-master k8s-worker  --quiet

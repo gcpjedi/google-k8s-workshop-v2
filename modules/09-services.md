@@ -20,7 +20,7 @@
 
 1. Redeploy the sample app (minimal version). Save the following as `manifests/sample-app.yaml` and apply the changes
 
-    > Note: Replace the image (gcr.io/$PROJECT_ID/sample-k8s-app:1.0.0)
+    > Note: Replace the image with your own, e.g. `gcr.io/$PROJECT_ID/sample-k8s-app:1.0.0`
 
     ```yaml
     apiVersion: v1

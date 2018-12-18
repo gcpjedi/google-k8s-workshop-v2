@@ -9,7 +9,7 @@
 
 ## The Sample App
 
-You'll use a very simple sample application `gceme` as the basis for your Continuous Delivery (CD) pipeline. `gceme` is written in Go and is located in the `sample-app` directory in this repo. When you run the `gceme` binary on a GCE instance, it displays the instance's metadata in a card:
+You'll use a very simple sample application `gceme` as the basis for your Continuous Delivery (CD) pipeline. `gceme` is written in Go and is located in the `sample-app` directory in this repo. When you run the `gceme` binary on a GCE instance, it displays the instance's metadata on a card.
 
 ![](img/info-card.png)
 
@@ -36,8 +36,8 @@ In frontend mode, `gceme` will query a backend `gceme` service and render that J
 
 Both the frontend and backend modes of the application support two additional URLs:
 
-1. `/version` prints the version of the binary (declared as a const in `main.go`)
-1. `/healthz` reports the health of the application. In frontend mode, health will be OK if the backend is reachable
+1. `/version` prints the version of the binary (declared as a const in `main.go`).
+1. `/healthz` reports the health of the application. In frontend mode, health will be OK if the backend is reachable.
 
 A deployment is a supervisor for pods and replica sets, giving you fine-grained control over how and when a new pod version is rolled out as well as rolled back to a previous state.
 
@@ -60,19 +60,20 @@ A deployment is a supervisor for pods and replica sets, giving you fine-grained 
     docker build . -t $IMAGE
     ```
 
-    `gcr.io` is the repository hostname.
+    * `gcr.io` is the repository hostname.
 
-    `$PROJECT_ID` is the id of your GCP project.
+    * `$PROJECT_ID` is the id of your GCP project.
 
-    `sample-k8s-app` is the name of the application image.
+    * `sample-k8s-app` is the name of the application image.
 
-    `1.0.0` is the image tag.
+    * `1.0.0` is the image tag.
 
-    `docker build` command packages the application into a docker container. It does the following steps:
-    * Reads the [Dockerfile](https://github.com/Altoros/google-k8s-workshop-v2/blob/master/sample-app/Dockerfile#L15)
-    * Creates a new container from the base image specified in the Dockerfile
-    * Runs all commands from the Dockerfile
-    * Saves the container filesystem as a new Docker image
+    * `docker build` command packages the application into a docker container. It does the following steps:
+
+      * Reads the [Dockerfile](https://github.com/Altoros/google-k8s-workshop-v2/blob/master/sample-app/Dockerfile#L15)
+      * Creates a new container from the base image specified in the Dockerfile
+      * Runs all commands from the Dockerfile
+      * Saves the container filesystem as a new Docker image
 
 1. Push the image to the GCE Container Registry.
 
@@ -122,15 +123,15 @@ Now let's create a cloud build that will do this for us, instead of manually bui
       -d mysql
     ```
 
-    `mysql` tells Docker to use the `library/mysql:latest` image for the database from the `hub.docker.io` repository.
+    * `mysql` tells Docker to use the `library/mysql:latest` image for the database from the `hub.docker.io` repository.
 
-    `-d` tells Docker to run the container in the background. If you need you can still use the `docker logs` command to examine the container output.
+    * `-d` tells Docker to run the container in the background. If you need you can still use the `docker logs` command to examine the container output.
 
-    `-e MYSQL_ROOT_PASSWORD=root` sets the database administrator password to `root`.
+    * `-e MYSQL_ROOT_PASSWORD=root` sets the database administrator password to `root`.
 
-    `--name db` sets the name of the container which you can refer to from other commands.
+    * `--name db` sets the name of the container which you can refer to from other commands.
 
-    `--rm` tells Docker to delete the container as soon as it is stopped or the root process inside the container finishes execution.
+    * `--rm` tells Docker to delete the container as soon as it is stopped or the root process inside the container finishes execution.
 
 1. Run the backend container.
 
@@ -143,13 +144,13 @@ Now let's create a cloud build that will do this for us, instead of manually bui
       app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root
     ```
 
-    `--link db` [links](https://docs.docker.com/network/links/) the backend container to the database container.
+    * `--link db` [links](https://docs.docker.com/network/links/) the backend container to the database container.
 
-    `-p 8081:8081` expose port 8081 from the container as port `8081` on the host.
+    * `-p 8081:8081` expose port 8081 from the container as port `8081` on the host.
 
-    `$IMAGE` tells docker to use image we built earlier for the sample app.
+    * `$IMAGE` tells Docker to use image we built earlier for the sample app.
 
-    `app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root` is the application start command. `app` is the executable file that we built and packaged inside the container previously. In these parameters, we specify that the app should listen at port `8081` and how it can connect to the database.
+    * `app -mode=backend -run-migrations -port=8081 -db-host=db -db-password=root` is the application start command. `app` is the executable file that we built and packaged inside the container previously. In these parameters, we specify that the app should listen at port `8081` and how it can connect to the database.
 
 1. Run the frontend container.
 
@@ -187,7 +188,7 @@ Now let's create a cloud build that will do this for us, instead of manually bui
 
 ## Mount a persistent volume
 
-By default docker stores a container filesystem in a certain folder on the host machine. This means that if a container is deleted its data will be lost. Let's verify this.
+By default Docker stores a container filesystem in a certain folder on the host machine. This means that if a container is deleted its data will be lost. Let's verify this.
 
 1. Open the application UI, scroll to the bottom and add a few notes.
 
@@ -197,7 +198,7 @@ By default docker stores a container filesystem in a certain folder on the host 
     docker stop db
     ```
 
-    Because of the fact that we run `db` container with the `--rm` option the container is automatically deleted after we stop it.
+    > Note: Because of the fact that we run `db` container with the `--rm` option, the container is automatically deleted after we stop it.
 
 1. Recreate the `db` container with a persistent volume.
 

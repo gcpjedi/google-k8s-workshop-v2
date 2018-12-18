@@ -19,7 +19,7 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
 
 ## Use Ingress
 
-1. Change the `frontend` service type from `LoadBalancer` to `NodePort`.
+1. Change the `frontend` Service type from `LoadBalancer` to `NodePort`.
 
     ```shell
     kubectl edit svc/frontend
@@ -62,9 +62,9 @@ Ingress can provide load balancing, SSL termination and name-based virtual hosti
               servicePort: 80
     ```
 
-    This will expose the service `frontend` using the relative path `/gceme`.
+    This will expose the Service `frontend` using the relative path `/gceme`.
 
-1. Create the Ingress
+1. Create the Ingress.
 
     ```shell
     kubectl get ingress --watch  # in the first terminal
@@ -148,7 +148,7 @@ By default, Ingress uses an ephemeral IP which may change during the time. To cr
 ### Use TLS
 
 1. Create a self-signed certificate for `gceme` app for the `gceme-training.com` domain [link](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl).
-1. Create a Kubernetes Secret for `gceme` app. The secret should contain the certificate and private key.
+1. Create a Kubernetes Secret for `gceme` app. The Secret should contain the certificate and private key.
 1. Add a `tls` section to the ingress definition. You can use the `tls` section from [this](https://kubernetes.io/docs/concepts/services-networking/ingress/#types-of-ingress) document for reference.
 1. Redeploy, open app in a web browser and examine certificate details. Use [this](https://www.ssl2buy.com/wiki/how-to-view-ssl-certificate-details-on-chrome-56) link to see how a certificate can be viewed in chrome.
 

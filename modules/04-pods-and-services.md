@@ -16,13 +16,13 @@
 
 In this section, you will deploy the mysql database, `gceme` frontend and backend apps to Kubernetes. We will use Kubernetes manifest files to describe the environment that the `gceme` binary/Docker image will be deployed to. We will use the `gceme` Docker image that you built in a previous module.
 
-1. First change directories to the sample-app:
+1. First change directories to the sample-app.
 
     ```shell
     cd google-k8s-workshop-v2/sample-app
     ```
 
-1. Create the manifest to deploy the `db` MySQL pod. Save the following as `manifests/db.yaml`:
+1. Create the manifest to deploy the `db` MySQL Pod. Save the following as `manifests/db.yaml`:
 
     ```yaml
     apiVersion: v1
@@ -41,13 +41,13 @@ In this section, you will deploy the mysql database, `gceme` frontend and backen
           name: mysql
     ```
 
-1. Deploy the `db` pod to Kubernetes
+1. Deploy the `db` Pod to Kubernetes.
 
     ```shell
     kubectl apply -f manifests/db.yaml
     ```
 
-1. List all pods
+1. List all Pods.
 
     ```shell
     kubectl get pod
@@ -58,7 +58,7 @@ In this section, you will deploy the mysql database, `gceme` frontend and backen
     db        1/1       Running   0          17s
     ```
 
-1. Find out the `db` pod's IP address.
+1. Find out the `db` Pod IP address.
 
     ```shell
     kubectl describe pod db | grep IP
@@ -89,7 +89,7 @@ In this section, you will deploy the mysql database, `gceme` frontend and backen
     export IMAGE=gcr.io/$PROJECT_ID/sample-k8s-app:1.0.0
     ```
 
-1. Find out the `backend` pod IP address just like how we did for the `db` pod.
+1. Find out the `backend` Pod IP address just like how we did for the `db` Pod.
 
 1. Create the manifest for the `frontend` application. Save it as `manifests/frontend.yaml` and deploy it to Kubernetes using `kubectl apply` command.
 
@@ -114,7 +114,7 @@ In this section, you will deploy the mysql database, `gceme` frontend and backen
 
 1. In the Cloud Console go to the 'Compute Engine' -> 'VM instances' page and `ssh` to any of the worker nodes. Pods have only cluster-internal IP addresses and are not available from the outside by default.
 
-1. From the node try to connect to both the `backend` and `frontend` using curl
+1. From the node try to connect to both the `backend` and `frontend` using curl.
 
     ```shell
     curl <backend-ip>:8080
@@ -123,9 +123,9 @@ In this section, you will deploy the mysql database, `gceme` frontend and backen
 
 ## Use Services and Service Discovery
 
-In the previous exercise, we manually copied IP addresses to connect pods. This is not only inconvenient, but error prone. After a pod is restarted its IP address changes, this will prevent your pods from reconnecting when failures occur. In our current setup it is impossible to load balance the traffic between multiple instances of the `backend` pod. Services will help us to fix all of these issues.
+In the previous exercise, we manually copied IP addresses to connect Pods. This is not only inconvenient, but error prone. After a Pod is restarted its IP address changes, this will prevent your Pods from reconnecting when failures occur. In our current setup it is impossible to load balance the traffic between multiple instances of the `backend` Pod. Services will help us to fix all of these issues.
 
-1. Add a label to the `db` pod. In the `manifests/db.yaml` file update the `metadata` section. The whole section should look like the following:
+1. Add a label to the `db` Pod. In the `manifests/db.yaml` file update the `metadata` section. The whole section should look like the following:
 
     ```yaml
     metadata:
@@ -135,7 +135,7 @@ In the previous exercise, we manually copied IP addresses to connect pods. This 
         role: db
     ```
 
-    Use `kubectl apply` to apply the changes. Here we are adding labels to the `db` pod. Services use labels under the hood to discover which pods to direct traffic to.
+    Use `kubectl apply` to apply the changes. Here we are adding labels to the `db` Pod. Services use labels under the hood to discover which Pods to direct traffic to.
 
 1. Create a `db` service. Create `manifests/db-svc.yaml` with the following content and apply the changes:
 
@@ -153,7 +153,7 @@ In the previous exercise, we manually copied IP addresses to connect pods. This 
         role: db
     ```
 
-1. Add a label to the `backend` pod:
+1. Add a label to the `backend` Pod:
 
     ```yaml
     metadata:
@@ -163,15 +163,15 @@ In the previous exercise, we manually copied IP addresses to connect pods. This 
         role: backend
     ```
 
-1. Update the `backend` pod's startup command.
+1. Update the `backend` Pod startup command.
 
     ```yaml
     command: ["app", "-mode=backend", "-run-migrations", "-port=8080", "-db-host=db", "-db-password=very-secret-password" ]
     ```
 
-1. Redeploy the `backend`. Note that `kubectl apply` will not work for us this time, because we are updating the pod startup command. Use `kuectl delete backend` to delete the pod and then recreate it.
+1. Redeploy the `backend`. Note that `kubectl apply` will not work for us this time, because we are updating the Pod startup command. Use `kuectl delete backend` to delete the Pod and then recreate it.
 
-1. Create a `backend` Service. Create and deploy `manifests/backend-svc.yaml`
+1. Create and deploy a `backend` Service file `manifests/backend-svc.yaml`.
 
     ```yaml
     kind: Service
@@ -189,13 +189,13 @@ In the previous exercise, we manually copied IP addresses to connect pods. This 
         app: gceme
     ```
 
-1. Update the `frontend` startup command
+1. Update the `frontend` startup command.
 
     ```yaml
     command: ["app", "-mode=frontend", "-backend-service=http://backend:8080", "-port=80"]
     ```
 
-1. Delete and recreate the `frontend` pod.
+1. Delete and recreate the `frontend` Pod.
 
 1. SSH to a worker node and check that the app is working.
 
@@ -222,7 +222,7 @@ Next thing we have to do is to expose the app to the external world. We can use 
         role: frontend
     ```
 
-1. Add a label to the `frontend` and apply changes
+1. Add a label to the `frontend` and apply changes.
 
     ```yaml
     metadata:
@@ -247,7 +247,7 @@ Next thing we have to do is to expose the app to the external world. We can use 
 
     > Note: This may take a few minutes to appear as the load balancer is being provisioned
 
-1. Copy the external ip and open it in your browser.
+1. Copy the external IP and open it in your browser.
 
     > Note: Make sure that the application is working correctly.
 
@@ -256,15 +256,15 @@ Next thing we have to do is to expose the app to the external world. We can use 
 
 ## Use Secrets and ConfigMaps to Externalize Application Credentials and Configuration
 
-One major problem with our current deployment is that we hardcoded the MySQL root password in the pod configuration file. In most cases, we need to externalize secrets and configuration from the Kubernetes object definition. We can use secrets and config maps to do that.
+One major problem with our current deployment is that we hardcoded the MySQL root password in the Pod configuration file. In most cases, we need to externalize secrets and configuration from the Kubernetes object definition. We can use Secrets and ConfigMaps to do that.
 
-1. Create a Secret with the MySQL administrator password
+1. Create a Secret with the MySQL administrator password.
 
     ```shell
     kubectl create secret generic mysql --from-literal=password=root
     ```
 
-1. Expose the password secret as an environment variable in the `db` pod. Modify the `env` section in the `manifests/db.yaml` to look like the following.
+1. Expose the `mysql` Secret as an environment variable in the `db` Pod. Modify the `env` section in the `manifests/db.yaml` to look like the following.
 
     ```yaml
     env:
@@ -275,19 +275,19 @@ One major problem with our current deployment is that we hardcoded the MySQL roo
           key: password
     ```
 
-    Here we are telling Kubernetes to get the value for the MYSQL_ROOT_PASSWORD variable from the `mysql` Secret. Each Secret can have multiple key-value pairs, in our case we get the value from the `password` key.
+    Here we are telling Kubernetes to get the value for the `MYSQL_ROOT_PASSWORD` variable from the `mysql` Secret. Each Secret can have multiple key-value pairs, in our case we get the value from the `password` key.
 
-1. Add exactly the same `env` section to the `manifests/backend.yaml`
+1. Add exactly the same `env` section to the `manifests/backend.yaml`.
 
-1. Modify the startup command in the `manifests/backend.yaml` file
+1. Modify the startup command in the `manifests/backend.yaml` file.
 
     ```yaml
     command: ["sh", "-c", "app -mode=backend -run-migrations -port=8080 -db-host=db -db-password=$MYSQL_ROOT_PASSWORD" ]
     ```
 
-    As you can see, here we call `sh` instead of calling our app directly. Shell is required to do environment variable substitution for us. Also we use $MYSQL_ROOT_PASSWORD instead of hardcoded password.
+    As you can see, here we call `sh` instead of calling our app directly. Shell is required to do environment variable substitution for us. Also we use `$MYSQL_ROOT_PASSWORD` instead of hardcoded password.
 
-1. Redeploy `backend` and `db`. The database pod should be redeployed first, because the backend creates an empty database on startup and this database will be destroyed if you redeploy the database after the backend.
+1. Redeploy `backend` and `db`. The database Pod should be redeployed first, because the backend creates an empty database on startup and this database will be destroyed if you redeploy the database after the backend.
 
     > Note: You will not be able to use `kubectl apply` command this time. Instead, you should use `kubectl delete` first and then redeploy pod.
 
@@ -295,21 +295,21 @@ One major problem with our current deployment is that we hardcoded the MySQL roo
 
 ## Use Sidecars and Init Containers
 
-On startup our `backend` pod creates a database for itself if it doesn't exist and run migrations. However, usually we want to externalize such tasks from the application pod. We can use Init Containers to do that.
+On startup our `backend` Pod creates a database for itself if it doesn't exist and run migrations. However, usually we want to externalize such tasks from the application Pod. We can use Init Containers to do that.
 
-First, let's verify that the app will fail if we restart the db and didn't run migrations.
+First, let's verify that the app will fail if we restart the db and don't run migrations.
 
 1. Delete the `-run-migrations` parameters from the `backend` startup command.
 
-1. Delete and recreate the `backend` pod. At this point the app should work fine because we are still using an old database.
+1. Delete and recreate the `backend` Pod. At this point the app should work fine because we are still using an old database.
 
-1. Delete and recreate the `db` pod
+1. Delete and recreate the `db` Pod.
 
-1. Open the app UI you should see a database error such as `Error 1146: Table 'mysql.notes' doesn't exist`
+1. Open the app UI you should see a database error such as `Error 1146: Table 'mysql.notes' doesn't exist`.
 
     Now let's fix the error by adding an Init Container to the `backend` pod, causing it to run migrations each time before it is started.
 
-1. Add the following section to the `manifests/backend.yaml`
+1. Add the following section to the `manifests/backend.yaml`.
 
     ```yaml
     initContainers:
@@ -326,15 +326,15 @@ First, let's verify that the app will fail if we restart the db and didn't run m
 
     > Note: You can append these lines directly to the end of the file. The `initContainers` section should have the same number of spaces as the `containers` section under the `spec` section.
 
-1. Recreate the backend pod
+1. Recreate the backend Pod.
 
 1. Make sure the app is working fine.
 
 ## Use Pod/Node Affinity and Anti-affinity
 
-By default the Kubernetes scheduler will try to evenly distribute pods between nodes, taking into consideration current node resource utilization as well as other criteria. But there are situations when you want to influence how pods are placed. For example, let's imagine that we want all our 3 pods to be colocated on a single node (this could make sense if we care more about performance than high availability). We don't want to pick a particular node - instead we prefer the scheduler to do this for us. We also don't want this rule to be very strict - if there is not such a node that has enough resources to host all of our pods we want to allow the scheduler to break this rule and put pods on different nodes. This is the kind of rule that can be expressed using [node/pod affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity).
+By default the Kubernetes scheduler will try to evenly distribute pods between nodes, taking into consideration current node resource utilization as well as other criteria. But there are situations when you want to influence how Pods are placed. For example, let's imagine that we want all our 3 Pods to be colocated on a single node (this could make sense if we care more about performance than high availability). We don't want to pick a particular node, instead we prefer the scheduler to do this for us. We also don't want this rule to be very strict, if there is not such a node that has enough resources to host all of our Pods we want to allow the scheduler to break this rule and put Pods on different nodes. This is the kind of rule that can be expressed using [node/pod affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity).
 
-1. Run the following command to make sure that your pods are allocated on different worker nodes (most likely this will be the case)
+1. Run the following command to make sure that your Pods are allocated on different worker nodes (most likely this will be the case).
 
     ```shell
     kubectl get pod -o wide
@@ -347,7 +347,7 @@ By default the Kubernetes scheduler will try to evenly distribute pods between n
     frontend   1/1       Running   0          20h       10.48.0.11   gke-gke-workshop-0-default-pool-c70d26ac-p2x2
     ```
 
-1. Add the following block to the `spec` element for all 3 of our pods. (this element should be aligned with the same number of spaces as `containers` key)
+1. Add the following block to the `spec` element for all 3 of our Pods (this element should be aligned with the same number of spaces as `containers` key).
 
     ```yaml
     affinity:
@@ -366,19 +366,19 @@ By default the Kubernetes scheduler will try to evenly distribute pods between n
 
     Refer to the [official documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#inter-pod-affinity-and-anti-affinity-beta-feature) to make sure you understand the meaning of all specified properties.
 
-1. Delete all pods
+1. Delete all Pods.
 
     ```shell
     kubectl delete pod --all
     ```
 
-1. Recreate all pods
+1. Recreate all Pods.
 
     ```shell
     kubectl apply -R -f manifests/
     ```
 
-1. Make sure all pods are colocated on a single node now.
+1. Make sure all Pods are colocated on a single node now.
 
     ```shell
     kubectl get pod -o wide
@@ -393,7 +393,7 @@ By default the Kubernetes scheduler will try to evenly distribute pods between n
 
 ## Set Pod Limits
 
-Currently, all our pods can consume as much resources as they want. This is rarely a good idea. Your pods can influence somebody else's workloads.
+Currently, all our Pods can consume as much resources as they want. This is rarely a good idea as our Pods can influence somebody else's workloads (noisy-neighbour).
 
 First, let's verify that right now this is the case.
 
@@ -403,7 +403,7 @@ First, let's verify that right now this is the case.
     kubectl exec -i -t backend bash
     ```
 
-1. Check how much memory is available
+1. Check how much memory is available.
 
     ```shell
     cat /proc/meminfo
@@ -416,19 +416,19 @@ First, let's verify that right now this is the case.
     ...
     ```
 
-1. Install `stress` utility inside the container
+1. Install `stress` utility inside the container.
 
     ```shell
     apt-get update && apt-get install stress
     ```
 
-1. Try to consume 1GB of memory
+1. Try to consume 1GB of memory.
 
     ```shell
     stress --vm-bytes 1g --vm-keep -m 1
     ```
 
-1. In a different terminal window exec into the `backend` pod again and run the `top` command
+1. In a different terminal window, exec into the `backend` pod again and run the `top` command.
 
     ```shell
     Tasks:   7 total,   2 running,   5 sleeping,   0 stopped,   0 zombie
@@ -446,11 +446,11 @@ First, let's verify that right now this is the case.
       244 root      20   0   41032   3124   2660 R  0.0  0.1   0:00.01 top
     ```
 
-1. Stop the `stress` and `top` commands and exit from the `backend` pod in both terminal windows
+1. Stop the `stress` and `top` commands and exit from the `backend` Pod in both terminal windows.
 
-    Now let's try to prevent the pod from consuming as much memory as it wants.
+    Now let's try to prevent the Pod from consuming as much memory as it wants.
 
-1. Add the following section to the `manifests/backend.yaml` inline with the other container properties
+1. Add the following section to the `manifests/backend.yaml` inline with the other container properties.
 
     ```yaml
         resources:
@@ -462,11 +462,11 @@ First, let's verify that right now this is the case.
 
     We define resource limits for all containers individually, so this element should go under `spec -> containers[name=backend]` and should be aligned together with `image` and `command` properties.
 
-1. Delete and recreate the `backend` pod.
+1. Delete and recreate the `backend` Pod.
 
-1. Exec into the `backend` pod and install stress again.
+1. Exec into the `backend` Pod and install stress again.
 
-1. Try to run the same `stress` command inside the `backend` pod again.
+1. Try to run the same `stress` command inside the `backend` Pod again.
 
     ```shell
     stress --vm-bytes 1g --vm-keep -m 1
@@ -483,7 +483,7 @@ First, let's verify that right now this is the case.
 
 ### Use sidecar containers
 
-A pod can host multiple containers, not just one. Let's try to extend the `backend` pod and add one more container into it. This pod can run any image. The startup command should be `sleep 100000`. After the pod is ready try to exec into the second container and access the `backend` app using `localhost`.
+A Pod can host multiple containers, not just one. Let's try to extend the `backend` Pod and add one more container into it. This Pod can run any image. The startup command should be `sleep 100000`. After the Pod is ready, try to exec into the second container and access the `backend` app using `localhost`.
 
 <details><summary>SOLUTION - CLICK ME</summary>
 <p>

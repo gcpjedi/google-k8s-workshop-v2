@@ -22,7 +22,7 @@
 
     > Note: The disk must be in the same zone and project as GKE cluster.
 
-1. Edit the database manifest to add volume to the Pod `spec`.
+1. Edit the database manifest to add the Volume to the Pod `spec`.
 
     ```yaml
     volumes:
@@ -153,7 +153,7 @@ A Persistent Volume Claim automates disk provisioning.
 
 ## Create a Storage Class
 
-Google cloud offers several disk types. They differ based on performance, reliability and price. How can I use particular disk type for Kubernetes workloads?
+Google Cloud offers several disk types. They differ based on performance, reliability and price. How can I use particular disk type for Kubernetes workloads?
 
 Kubernetes defines resource type called StorageClass. By specifying StorageClass in you PVCs you can provision different disk types.
 
@@ -219,11 +219,11 @@ Kubernetes defines resource type called StorageClass. By specifying StorageClass
     fast-data      Bound    pvc-eaac23d7-f47a-11e8-aef3-42010a840052   50Gi       RWO            ssd            5m
     ```
 
-1. The last step is to change the PVC reference from the database Pod and update the deployment. Please do this by yourself.
+1. The last step is to change the PVC reference from the database Pod and update the Deployment. Please do this by yourself.
 
 ## Converting mysql Deployment to a Stateful Set
 
-When you are using Deployments to manage your Pods it is very easy to scale stateless applications, like our backend and frontend, but scaling stateful applications is more difficult. If you want to scale a mysql database you have to start the first node in a bootstrap mode, then you have to wait until this node is ready and finally you have to start all other nodes and add them to the cluster. If you try to use a Deployment to scale your database, it will create 3 instances of the database Pod simultaneously and you will not be able to create a cluster. StatefulSet is the right object to do such kind of Deployment. Now let's use a StatefulSet to convert our mysql Pod to a 3-node galera mysql cluster.
+When you are using Deployments to manage your Pods it's very easy to scale stateless applications, like our backend and frontend, but scaling stateful applications is more difficult. If you want to scale a mysql database you have to start the first node in a bootstrap mode, then you have to wait until this node is ready and finally you have to start all other nodes and add them to the cluster. If you try to use a Deployment to scale your database, it will create 3 instances of the database Pod simultaneously and you will not be able to create a cluster. StatefulSet is the right object to do such kind of Deployment. Now let's use a StatefulSet to convert our mysql Pod to a 3-node galera mysql cluster.
 
 1. In the `sample-app` folder create a subfolder `mysql-galera`.
 
@@ -393,17 +393,17 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
               successThreshold: 2
     ```
 
-    > Note: replace the image name with the image just created
+    > Note: Replace the image name with the image just created.
 
-1. Edit the backend deployment `manifests/backend.yaml`
+1. Edit the backend deployment `manifests/backend.yaml`.
 
     1. If you still have the init and multi container remove them, leaving only the backend container.
 
-    1. In the startup command, change `-db-host=db` to `-db=host=galera-cluster`
+    1. In the startup command, change `-db-host=db` to `-db=host=galera-cluster`.
 
-    1. Apply the changes
+    1. Apply the changes.
 
-1. Connect to the app and add some notes
+1. Connect to the app and add some notes.
 
 1. Exec inside one of the db Pods.
 
@@ -433,7 +433,9 @@ When you are using Deployments to manage your Pods it is very easy to scale stat
     | sys                |
     +--------------------+
     ```
-1. Show your notes
+
+1. Show your notes.
+
     ```sql
     select * from sample_app.notes;
     ```

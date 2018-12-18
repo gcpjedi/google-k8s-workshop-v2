@@ -121,6 +121,7 @@ Every time you open a new terminal you will need to input these commands. To avo
 > Note: changing the zone will not change the region automatically.
 
 You can check for additional information with:
+
 ```shell
 gcloud info
 ```
