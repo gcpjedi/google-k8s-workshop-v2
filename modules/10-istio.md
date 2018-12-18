@@ -8,8 +8,7 @@
 1. Traffic Shifting
 1. Fault Injection
 1. Circuit Breaking
-1. Rate-limiting using Istio & Memorystore
-
+1. Control Egress Traffic
 ---
 
 ## Configure & Install Istio
@@ -351,7 +350,28 @@ Now let's demonstrate how we can automatically remove failing servier from the s
 
 1. Check `ejections_enforced_total` parameter - it should be non zero.
 
-## Rate-limiting using Istio & Memorystore
+## Control Egress Traffic
+
+We still have one major issue with our app: it can't access external services and get GCP metadata. We can resolve this issue using a ServiceEntry
+
+1. Save the following as `external.yml` and apply the chagnes
+
+    ```
+    apiVersion: networking.istio.io/v1alpha3
+    kind: ServiceEntry
+    metadata:
+      name: gcp-metadata
+    spec:
+      hosts:
+      - 169.254.169.254 # ip address of the gcp metadata server
+      ports:
+      - number: 80
+        name: http
+        protocol: HTTP
+      location: MESH_EXTERNAL
+    ```
+
+1. Check that the app now can access GCP metadata
 
 ---
 
