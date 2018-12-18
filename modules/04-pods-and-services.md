@@ -498,7 +498,7 @@ spec:
     command: ['sh', '-c', 'echo Multi-container example! && sleep 100000']
 ```
 
-> Note: in yaml `-` is used for arrays, everything object with `-` supports multiple values.
+> Note: in yaml `-` is used for arrays, every object with `-` supports multiple values.
 
 ```shell
 kubectl exec -i -t backend -c multi /bin/sh
