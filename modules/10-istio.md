@@ -322,7 +322,7 @@ Now let's demonstrate how we can automatically remove a failing app from the sys
 
 1. Delete the `retries` section from the `manifests/backend-vs.yaml` and apply the changes. Observe that the app starts failing again
 
-1. Add the following lines to the `spec -> trafficPolicy` section of the `manifest/backend-dr.yaml` and apply the changes
+1. Add the following lines to the `spec -> trafficPolicy` section of the `manifests/backend-dr.yaml` and apply the changes
 
     ```
         outlierDetection:
@@ -356,7 +356,7 @@ To verify that the backend pod was actually ejected do the following:
 
 We still have one major issue with our app: it can't access external services and get GCP metadata. We can resolve this issue using a ServiceEntry
 
-1. Save the following as `external.yaml` and apply the changes
+1. Save the following as `manifests/external.yaml` and apply the changes
 
     ```
     apiVersion: networking.istio.io/v1alpha3
