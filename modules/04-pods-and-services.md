@@ -313,7 +313,7 @@ First, let's verify that the app will fail if we restart the db and didn't run m
 
     ```yaml
     initContainers:
-    - name: init-myservice
+    - name: init-db
       image: <REPLACE_WITH_YOUR_OWN_IMAGE>
       env:
       - name: MYSQL_ROOT_PASSWORD
