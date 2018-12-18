@@ -8,7 +8,7 @@
 1. Traffic Shifting
 1. Fault Injection
 1. Circuit Breaking
-1. Rate-limiting using Istio & Memorystore (Redis)”
+1. Rate-limiting using Istio & Memorystore
 
 ---
 
@@ -325,14 +325,33 @@ Now let's demonstrate how we can automatically remove failing servier from the s
 
 1. Add the following lines to the `spec -> trafficPolicy` section of the `manifest/backend-dr.yml` and apply the chagnes.
 
-```
-    outlierDetection:
-      consecutiveErrors: 1
-      interval: 1s
-      baseEjectionTime: 1m
-      maxEjectionPercent: 100
-```
+    ```
+        outlierDetection:
+          consecutiveErrors: 1
+          interval: 1s
+          baseEjectionTime: 1m
+          maxEjectionPercent: 100
+    ```
 
+1. Check that after the first error backend `1.0.0` is ejected and all requests are redirected to the `1.0.1` backend. 
+
+> Note: There is a known istio [issue](https://github.com/istio/istio/issues/8846) that prevents this functionalyt from working corectly - ejected pods are reenabled right after they were ejected. To verify that backedn pod was actually ejected do the following.
+
+1. List all pods
+
+1. Exec into the sidecar container of the frontend pod
+    ```
+    exec -it <frontend-pod> -c istio-proxy bash
+    ```
+
+1. Get relevant statistics
+    ```
+    curl localhost:15000/stats | grep outlier_detection
+    ```
+
+1. Check `ejections_enforced_total` parameter - it should be non zero.
+
+## Rate-limiting using Istio & Memorystore
 
 ---
 
