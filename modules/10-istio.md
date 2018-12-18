@@ -310,6 +310,29 @@ Now let's inject a native failure to the backend application to demonstrate how 
 
 1. Make sure that now application is failing 50% of the times (Failures should happen only if frontend connects to the `1.0.0` version of the backend)
 
+1. Add retries to the `spec -> http[0]` section of the `manifest/backend-vs.yml` and apply the changes.
+
+    ```
+        retries:
+          attempts: 3
+          perTryTimeout: 2s
+    ```
+1. Test the app: you shoul no longer see any failer, because each failed request now is retries up to 3 times.
+
+Now let's demonstrate how we can automatically remove failing servier from the system (apply Circuit Breaking pattern)
+
+1. Delete retries section from the `manifests/backend-vs.yml` and apply the chagnes. Make sure the the app start failing again.
+
+1. Add the following lines to the `spec -> trafficPolicy` section of the `manifest/backend-dr.yml` and apply the chagnes.
+
+```
+    outlierDetection:
+      consecutiveErrors: 1
+      interval: 1s
+      baseEjectionTime: 1m
+      maxEjectionPercent: 100
+```
+
 
 ---
 
