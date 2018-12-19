@@ -169,7 +169,7 @@ In the previous exercise, we manually copied IP addresses to connect Pods. This 
     command: ["app", "-mode=backend", "-run-migrations", "-port=8080", "-db-host=db", "-db-password=very-secret-password" ]
     ```
 
-1. Redeploy the `backend`. Note that `kubectl apply` will not work for us this time, because we are updating the Pod startup command. Use `kuectl delete backend` to delete the Pod and then recreate it.
+1. Redeploy the `backend`. Note that `kubectl apply` will not work for us this time, because we are updating the Pod startup command. Use `kuectl delete pod backend` to delete the Pod and then recreate it.
 
 1. Create and deploy a `backend` Service file `manifests/backend-svc.yaml`.
 
