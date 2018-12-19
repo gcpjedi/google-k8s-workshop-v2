@@ -8,7 +8,7 @@
 1. Use Istio Whitelist/Blacklist
 1. Setup a GKE Private Cluster, make sure nodes don't have public IPs
 1. Use Master Authorized Networks to secure access to the cluster master endpoint
-1. Enable Metadata Concealment to prevent pods from accessing certain VM metadata
+1. Enable Metadata Concealment to prevent Pods from accessing certain VM metadata
 1. Enable and test Cloud IAP for the cluster
 
 ---
@@ -17,7 +17,7 @@
 
 First let's enable network policy enforcement on the GKE cluster. It is a two-step process.
 
-1. Deploy network policy addon on top of the cluster
+1. Deploy network policy addon on top of the cluster.
 
     ```shell
     gcloud container clusters update gke-workshop \
@@ -73,14 +73,14 @@ Let's see how to use a Network Policy for blocking the external traffic for a `P
 
     > Note: This network policy blocks all the outgoing traffic except DNS resolution.
 
-1. Now start the pod that matches label `app=foo`.
+1. Now start the Pod that matches label `app=foo`.
 
     ```shell
     kubectl run --rm --restart=Never --image=alpine -i -t --labels app=foo test -- ash
     ```
 
 1. Test DNS resolution.
-  
+
     ```
     nslookup www.example.com
     ```
@@ -92,11 +92,11 @@ Let's see how to use a Network Policy for blocking the external traffic for a `P
     Address 2: 2606:2800:220:1:248:1893:25c8:1946
     ```
 
-1. Test HTTP traffic.  
-  
+1. Test HTTP traffic.
+
     ```
     wget --timeout 1 -O- http://www.example.com
-    ```   
+    ```
     ```
     Connecting to www.example.com (93.184.216.34:80)
     wget: download timed out
@@ -107,7 +107,7 @@ Let's see how to use a Network Policy for blocking the external traffic for a `P
     `nslookup: can't resolve '(null)': Name does not resolve` is a [bug](https://forums.docker.com/t/resolved-service-name-resolution-broken-on-alpine-and-docker-1-11-1-cs1/19307/11), ignore it for now.
 
 
-## Create and test a pod security policy
+## Create and test a Pod Security Policy
 
 To enable PSP for the new cluster, use `--enable-pod-security-policy` flag during creation.
 
@@ -177,7 +177,7 @@ We have already created the cluster so we will use the update command.
     kubectl apply -f manifests/pod-starter-role.yaml
     ```
 
-1. Bind the Role to the `default` service account
+1. Bind the Role to the `default` service account.
 
     ```yaml
     apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -227,14 +227,14 @@ We have already created the cluster so we will use the update command.
     EOF
     ```
 
-    `Deployment` creates `ReplicaSet` that in turn creates a `Pod`. 
+    `Deployment` creates `ReplicaSet` that in turn creates a `Pod`.
 
 1. Show the `ReplicaSet` state.
 
     ```shell
     kubectl get rs -l=app=privileged
     ```
-    
+
     ```
     NAME                    DESIRED   CURRENT   READY     AGE
     privileged-6c96db7488   1         0         0         5m
@@ -247,14 +247,14 @@ We have already created the cluster so we will use the update command.
     ```shell
     kubectl describe rs -l=app=privileged
     ```
-    
+
     ```
     Error creating: pods "privileged-6c96db7488-" is forbidden: unable to validate against any pod security policy: [spec.containers[0].securityContext.privileged: Invalid value: true: Privileged containers are not allowed]
     ```
 
     Admission controller forbids creating privileged containers as the applied policy states.
 
-1. Create pod directly?
+1. Create a Pod directly?
 
     ```shell
     kubectl create -f- <<EOF
@@ -307,10 +307,9 @@ To interact with the cluster, you will need to provision a VM inside the cluster
 
     `kubectl` hangs as private endpoint is not available over the internet
 
-1. Create jumpbox in the same subnet as Kuberentes cluster
+1. Create a jumpbox in the same subnet as Kuberentes cluster.
 
     ```shell
-    # create jumpbox instance in the same subnet
     gcloud compute instances create jumpbox-inner \
       --subnet=workshop-subnet \
       --machine-type=f1-micro \
@@ -323,23 +322,38 @@ To interact with the cluster, you will need to provision a VM inside the cluster
 
     `--subnet=workshop-subnet` creates machine is the same subnet as cluster
 
-    Jumpbox has both public and private IPs. You SSH to the jumpbox with its public interface and connect to the Kubernetes cluster using private IP.
+    The jumpbox has both public and private IPs. You SSH to the jumpbox with its public interface and connect to the Kubernetes cluster using private IP.
 
-1. Verify that you can access Kubernetes from the jumpbox
+1. Verify that you can access Kubernetes from the jumpbox.
 
     ```shell
-    $ gcloud container clusters get-credentials gke-workshop-1 --zone=europe-west1-d
+    gcloud container clusters get-credentials gke-workshop-1 --zone=europe-west1-d
+    ```
+
+    ```
     Fetching cluster endpoint and auth data.
     kubeconfig entry generated for gke-workshop-1.
+    ```
 
-    $ sudo apt-get update && sudo apt-get install kubectl
+    ```shell
+    sudo apt-get update && sudo apt-get install kubectl
+    ```
 
-    $ kubectl get nodes -o wide
+    ```shell
+    kubectl get nodes -o wide
+    ```
+
+    ```
     NAME                                            STATUS   ROLES    AGE   VERSION          INTERNAL-IP   EXTERNAL-IP
       OS-IMAGE                             KERNEL-VERSION   CONTAINER-RUNTIME
     gke-gke-workshop-1-default-pool-f80a37f2-wxfj   Ready    <none>   16m   v1.11.3-gke.18   10.70.0.2 Container-Optimized OS from Google   4.14.65+         docker://17.3.2
+    ```
 
-    $ kubectl cluster-info
+    ```shell
+    kubectl cluster-info
+    ```
+
+    ```
     Kubernetes master is running at https://172.16.0.34
     GLBCDefaultBackend is running at https://172.16.0.34/api/v1/namespaces/kube-system/services/default-http-backend:ht
     tp/proxy
@@ -348,22 +362,27 @@ To interact with the cluster, you will need to provision a VM inside the cluster
     Metrics-server is running at https://172.16.0.34/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
     ```
 
-1. Now create the vm outside the cluster subnet
+1. Now create the VM outside the cluster subnet.
 
     ```shell
-    $ gcloud compute instances create jumpbox-outer \
+    gcloud compute instances create jumpbox-outer \
       --machine-type=f1-micro \
       --scopes=cloud-platform
+    ```
+
+    ```
     Created [https://www.googleapis.com/compute/v1/projects/project-aleksey-zalesov/zones/europe-west1-d/instances/jumpbox-outer].
     NAME           ZONE            MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
     jumpbox-outer  europe-west1-d  f1-micro                   10.132.0.2   35.205.132.74  RUNNING
+    ```
 
-    $ gcloud compute ssh jumpbox-outer
+    ```shell
+    gcloud compute ssh jumpbox-outer
     ```
 
 1. Can you connect to the Kubernetes cluster from `jumpbox-outer`? Try it.
 
-1. To enable connections from the vm outside cluster subnet add the machines private IP address to the list of masters authorized networks.
+1. To enable connections from the VM outside cluster subnet, add the machines private IP address to the list of masters authorized networks.
 
     ```shell
     gcloud container clusters update gke-workshop-1 \
@@ -371,99 +390,97 @@ To interact with the cluster, you will need to provision a VM inside the cluster
         --master-authorized-networks 10.132.0.2/32
     ```
 
-    This time you should be able to access Kubernetes API from `jumpbox-outer`
+    > Note: This time you should be able to access Kubernetes API from `jumpbox-outer`
 
-### Clean up: private cluster
+### Clean Up
 
-Delete the provisioned resources
+Delete the provisioned resources.
 
 ```shell
 gcloud compute instances delete jumpbox-inner jumpbox-outer
-
 gcloud container clusters delete gke-workshop-1
 ```
 
-## Enable Metadata Concealment to prevent pods from accessing certain VM metadata
+## Enable Metadata Concealment to prevent Pods from accessing certain VM metadata
 
 Nodes running in Google Cloud may learn information about themselves by querying metadata server. It is accessible without authentication from any instance on the host `http://metadata/computeMetadata/v1/`.
 
-Some metadata is considered sensitive, in particular instance identity token. Applications connecting to the instance may verify the instance identity with this token. Pod may interact as instance if it gets access to the token and recieves the connection from an app.
+Some metadata is considered sensitive, in particular instance identity token. Applications connecting to the instance may verify the instance identity with this token. A Pod may interact as instance if it gets access to the token and recieves the connection from an app.
 
-First let's try to get the token from the unrestricted cluster.
+1. First let's try to get the token from the unrestricted cluster.
 
-```shell
-$ kubectl run --rm --restart=Never --image=alpine -i -t test -- ash
+    ```shell
+    kubectl run --rm --restart=Never --image=alpine -i -t test -- ash
+    apk add curl
+    curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.example.com'
+    eyJhbGciOi...
+    ```
 
-$ apk add curl
+    You can get instance identity token from the `Pod`.
 
-$ curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.example.com'
-eyJhbGciOi...
-```
+1. Disable this behavior.
 
-One can get instance identity token from the `Pod`.
+    ```shell
+    gcloud beta container clusters create gke-workshop-0 \
+      --cluster-version 1.11.3 \
+      --num-nodes 1 \
+      --machine-type n1-standard-1 \
+      --workload-metadata-from-node=SECURE
+    ```
 
-Let's disable this behavior.
+1. Run a container with the shell inside the cluster.
 
-```shell
-gcloud beta container clusters create gke-workshop-0 \
---cluster-version 1.11.3 \
---num-nodes 1 \
---machine-type n1-standard-1 \
---workload-metadata-from-node=SECURE
-```
+    ```shell
+    kubectl run --rm --restart=Never --image=alpine -i -t test -- ash
+    apk add curl
+    curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.example.com'
+    ```
 
-Run a container with the shell inside the cluster.
+    ```
+    This metadata endpoint is concealed.
+    ```
 
-```shell
-$ kubectl run --rm --restart=Never --image=alpine -i -t test -- ash
+    GKE runs proxy between Pods and Metadata server. This proxy conceals identity token endpoint and `kube-env`.
 
-$ apk add curl
+1. What if user wants to get the project ID where the Kubernetes is running?
 
-$ curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.example.com'
-This metadata endpoint is concealed.
-```
+    ```shell
+    curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/project/project-id'
+    ```
 
-GKE runs proxy between Pods and Metadata server. This proxy conceals identity token endpoint and `kube-env`.
+    > Note: It works as proxy does not conceal all the endpoints.
 
-What if user wants to get project id where the Kubernetes is running?
+    In current configuration one may use legacy endpoint `v1beta1` instead of `v1`. The `v1beta1` is considered less secure as it does not implement some safeguards. For example, it does not require the `Metadata-Flavor: Google` header which protects user from quering the endpoint by accident from the insecure environment.
 
-```shell
-$ curl -H "Metadata-Flavor: Google" 'http://metadata/computeMetadata/v1/project/project-id'
-project-aleksey-zalesov/
-```
+    ```shell
+    url 'http://metadata/computeMetadata/v1beta1/project/project-id'
+    ```
 
-It works as proxy does not conceal all the endpoints.
+1. Unfortunately, you may not disable legacy endpoints for the existing cluster, so lets rebuild the cluster.
 
-In current configuration one may use legacy endpoint `v1beta1` instead of `v1`. The `v1beta1` is considered less secure as it does not implement some safeguards. For example, it does not require "Metadata-Flavor: Google" header which protects user from quering the endpoint by accident from the insecure environment.
+    ```shell
+    gcloud beta container clusters create gke-workshop-1 \
+      --cluster-version 1.11.3 \
+      --num-nodes 1 \
+      --machine-type n1-standard-1 \
+      --workload-metadata-from-node=SECURE \
+      --metadata disable-legacy-endpoints=true
+    ```
 
-```shell
-$ curl 'http://metadata/computeMetadata/v1beta1/project/project-id'
-project-aleksey-zalesov/
-```
+1. After the cluster is ready and you run a shell inside of it, try to use `v1beta` endpoint.
 
-Unfortunately, one may not disable legacy endpoints for the existing cluster. So you need to rebuild cluster.
+    ```shell
+    curl 'http://metadata/computeMetadata/v1beta1/project/project-id'
+    ```
 
-```shell
-gcloud beta container clusters create gke-workshop-1 \
---cluster-version 1.11.3 \
---num-nodes 1 \
---machine-type n1-standard-1 \
---workload-metadata-from-node=SECURE \
---metadata disable-legacy-endpoints=true
-```
+    ```
+    Your client does not have permission to get URL <code>/computeMetadata/v1beta1/project/project-id</code> from this server. Legacy metadata endpoint accessed: /computeMetadata/v1beta1/project/project-id
+    Legacy metadata endpoints are disabled. Please use the /v1/ endpoint.
+    ```
 
-After the cluster is ready and you run a shell inside of it, try to use `v1beta` endpoint.
+    Metadata concealment is a temporary security solution made available to users of GKE while the bootstrapping process for cluster nodes is being redesigned with significant security improvements. This feature is scheduled to be deprecated and removed in the future.
 
-```shell
-$ curl 'http://metadata/computeMetadata/v1beta1/project/project-id'
-
-Your client does not have permission to get URL <code>/computeMetadata/v1beta1/project/project-id</code> from this server. Legacy metadata endpoint accessed: /computeMetadata/v1beta1/project/project-id
-Legacy metadata endpoints are disabled. Please use the /v1/ endpoint.
-```
-
-Metadata concealment is a temporary security solution made available to users of GKE while the bootstrapping process for cluster nodes is being redesigned with significant security improvements. This feature is scheduled to be deprecated and removed in the future.
-
-### Clean up: metadata conceal
+### Clean Up
 
 Get rid of both clusters.
 
@@ -474,19 +491,22 @@ gcloud container clusters delete gke-workshop-1 --async
 
 ## Cloud IAP
 
-1. Make sure that you have `sample-app` exposed as Ingress
+1. Make sure that you have `sample-app` exposed as Ingress.
 
     ```shell
-    $ kubectl get ingress
+    kubectl get ingress
+    ```
+
+    ```
     NAME            HOSTS   ADDRESS          PORTS     AGE
     basic-ingress   *       35.244.247.163   80, 443   34m
     ```
 
-    Note external IP of the ingress - `35.244.247.163`
+    Remember the external IP of the ingress - `35.244.247.163`
 
 1. Cloud IAP requires that users connect using HTTPS protocol. So now you will generate self-signed TLS certificate and add it to the Ingress.
 
-    Generate self-signed certificate
+    Generate a self-signed certificate.
 
     ```shell
     openssl req \
@@ -496,15 +516,15 @@ gcloud container clusters delete gke-workshop-1 --async
       -subj "/CN=35.244.247.163.xip.io/O=nginxsvc"
     ```
 
-    Note that we use xip.io domain as Cloud IAP doesn't allow using IP.
+    > Note: that we use xip.io domain as Cloud IAP doesn't allow using IP.
 
-    Create a secret with tls certificate and private key
+1. Create a Secret with the tls certificate and private key.
 
     ```shell
     kubectl create secret tls tls-secret-0 --key tls.key --cert tls.crt
     ```
 
-    Add the secret to the ingress
+1. Add the Secret to the Ingress.
 
     ```yaml
     apiVersion: extensions/v1beta1
@@ -517,11 +537,9 @@ gcloud container clusters delete gke-workshop-1 --async
     ..
     ```
 
-    Apply the configuration.
+1. Apply the configuration. Wait for the application to become available using HTTPS.
 
-    Proceed to the next step when the application is available using HTTPS.
-
-1. Now add conscent screen to the project. This information will be displayed for the users accessing the application.
+1. Add conscent screen to the project. This information will be displayed for the users accessing the application.
 
     - URL: https://console.cloud.google.com/apis/credentials/consent
     - Application type: Internal
@@ -533,34 +551,34 @@ gcloud container clusters delete gke-workshop-1 --async
 
     Click save.
 
-1. Add yourself as user who can access the application
+1. Add yourself as user who can access the application.
 
-    Go to https://console.cloud.google.com/security/iap
+    Go to [Security IAP](https://console.cloud.google.com/security/iap).
 
-    Select the ingress for the sample application.
+    Select the Ingress for the sample application.
 
-    In the right pane click "Add member" and add yourslef with the role `IAP-secured Web App User`.
+    In the right pane click "Add member" and add yourself with the role `IAP-secured Web App User`.
 
     Note that you can't add users outside `altoros.com` organisation as the application marked as `Internal`.
 
     ![IAP Role](img/IAP-role.png)
 
-1. Click the slider in the center of the screen to tur IAP on
+1. Click the slider in the center of the screen to turn IAP on.
 
-1. Wait until Cloud IAP provisions credentails
+1. Wait until Cloud IAP provisions credentails.
 
     They will be available at https://console.cloud.google.com/apis/credentials
 
     ![IAP Credentials](img/iap-credentials.png)
 
-1. When available export as environmental vaiables Client ID and Client secret.
+1. When available, export the environmental variables Client ID and Client Secret.
 
     ```shell
     export CLIENT_ID="24..9oggcoseuc7q.apps.googleusercontent.com"
     export CLIENT_SECRET="NOTD.."
     ```
 
-1. Create a secret with OAuth data
+1. Create a Secret with OAuth data.
 
     ```shell
     kubectl create secret generic my-secret-0 \
@@ -568,7 +586,7 @@ gcloud container clusters delete gke-workshop-1 --async
       --from-literal=client_secret=$CLIENT_SECRET
     ```
 
-1. And use this secret as the backend configuration for Cloud IAP
+1. And use this Secret as the backend configuration for Cloud IAP.
 
     ```yaml
     apiVersion: cloud.google.com/v1beta1
@@ -585,12 +603,16 @@ gcloud container clusters delete gke-workshop-1 --async
 
 1. Now wait some time and go to https://35.244.247.163.xip.io/
 
-    The IP will be different in your case.
+    > Note: The IP will be different in your case.
 
-    You should see the screen `Sign in with Google`
+    You should see the screen `Sign in with Google`.
 
     Enter the account and the password you for the training and you will see the application frontend.
 
     Try to login with a different user and make sure you can't access the application.
 
-In this exercise you configured Cloud IAP to protect the application running on GKE.
+You have successfully configured Cloud IAP to protect the application running on GKE.
+
+---
+
+[Return to Home](../README.md)

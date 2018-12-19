@@ -422,9 +422,9 @@ In this exercise you will set up an attestor. It is an entity-like CI/CD system 
 
     This time the application should run correctly.
 
-1. Start the backend pod.
+1. Start the backend Pod.
 
-1. Create attestation for the MySQL image and run the `db` pod by yourself.
+1. Create attestation for the MySQL image and run the `db` Pod by yourself.
 
 ## Clean up
 

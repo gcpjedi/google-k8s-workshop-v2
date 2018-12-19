@@ -27,13 +27,13 @@ Low-level infrastructure resources like Nodes and PersistentVolumes are not asso
     kubectl get ns
     ```
 
-1. Use `describe` to learn more about a particular Namespace
+1. Use `describe` to learn more about a particular Namespace.
 
     ```shell
     kubectl describe ns default
     ```
 
-1. Save the following file as `manifests/workshop-ns.yaml`
+1. Save the following file as `manifests/workshop-ns.yaml`.
 
     ```shell
       apiVersion: v1
@@ -42,13 +42,13 @@ Low-level infrastructure resources like Nodes and PersistentVolumes are not asso
         name: workshop
     ```
 
-1. Apply the manifest to create a new Namespace called `workshop`
+1. Apply the manifest to create a new Namespace called `workshop`.
 
     ```shell
     kubectl apply -f manifests/workshop-ns.yaml
     ```
 
-1. List Namespaces again
+1. List Namespaces again.
 
     > Note: You should see namespace `workshop` in the list
 
@@ -60,29 +60,29 @@ In this exercise you will create a service account and configure `gcloud` to use
 
 >Note: Typically you login as a human user, not as a service account. You would normally create additional human users in gSuite. Unfortunately, adding human users is out of scope for this workshop.
 
-1. Create a service account in the new workspace
+1. Create a service account in the new workspace.
 
     ```shell
     kubectl create serviceaccount workshop-user --namespace workshop
     ```
 
-1. Set up authentication for `kubectl` with the service account. You will use the context `gke-workshop` for normal operations and `limited` for operations as `workshop-user`
+1. Set up authentication for `kubectl` with the service account. You will use the context `gke-workshop` for normal operations and `limited` for operations as `workshop-user`.
 
     ```shell
     kubectl config set-credentials workshop-user --token=$(kubectl get secret $(kubectl get secret -n workshop | grep workshop-user-token | cut -f 1 -d " ") -n=workshop -o jsonpath={.data.token} | base64 --decode)
     ```
 
-1. Edit `~/.kube/config`
+1. Edit `~/.kube/config`.
 
-   1. Duplicate the context section, name the new context "limited"
+   1. Duplicate the context section, name the new context `limited`.
 
-   1. Rename the original context `gke-workshop`
+   1. Rename the original context `gke-workshop`.
 
-   1. Add `namespace: workshop` On the second context
+   1. Add `namespace: workshop` On the second context.
 
-   1. Change the user to `workshop-user` on the second context
+   1. Change the user to `workshop-user` on the second context.
 
-   1. Set `current-context: gke-workshop`
+   1. Set `current-context: gke-workshop`.
 
    It should look like this:
 
@@ -100,7 +100,7 @@ In this exercise you will create a service account and configure `gcloud` to use
     current-context: gke-workshop
     ```
 
-1. Check if you can get pods with the `gke-workshop` context
+1. Check if you can get Pods with the `gke-workshop` context.
 
     ```shell
     kubectl auth can-i get pods
@@ -108,13 +108,13 @@ In this exercise you will create a service account and configure `gcloud` to use
 
     > Note: Output should be yes
 
-1. Switch between the contexts
+1. Switch between the contexts.
 
     ```shell
     kubectl config use-context limited
     ```
 
-1. Check if you can get pods with the `limited` context
+1. Check if you can get Pods with the `limited` context.
 
     ```shell
     kubectl auth can-i get pods
@@ -122,7 +122,7 @@ In this exercise you will create a service account and configure `gcloud` to use
 
     > Note: Output should be no. The user can do nothing as you didn't associate it with any role
 
-1. Switch back to the normal context
+1. Switch back to the normal context.
 
     ```shell
     kubectl config use-context gke-workshop
@@ -136,7 +136,7 @@ In both cases you describe the objects you want to grant access to and operation
 
 For the Role to take effect you must bind it to the user.
 
-1. Create `manifests/worker-role.yaml` file which grants permissions to create Pods and Deployments
+1. Create `manifests/worker-role.yaml` file which grants permissions to create Pods and Deployments.
 
     ```yaml
     kind: Role
@@ -153,15 +153,15 @@ For the Role to take effect you must bind it to the user.
       verbs: ["get", "watch", "list", "create"]
     ```
 
-    > Note: The nginx deployment created later might be of either `extensions` or `apps` API groups. For simplicity, we will use both in this workshop.
+    > Note: The nginx deployment created later might be of either `extensions` or `apps` API groups depending on your client version. For simplicity, we will use both in this workshop.
 
-1. Apply the manifest
+1. Apply the manifest.
 
     ```shell
     kubectl apply -f manifests/worker-role.yaml
     ```
 
-1. Create a RoleBinding `manifests/worker-rolebinding.yaml` between user and the Role
+1. Create a RoleBinding `manifests/worker-rolebinding.yaml` between user and the Role.
 
     ```yaml
     kind: RoleBinding
@@ -179,27 +179,27 @@ For the Role to take effect you must bind it to the user.
       apiGroup: rbac.authorization.k8s.io
     ```
 
-    > Note: This RoleBinding is for the `workshop` Namespace only
+    > Note: This RoleBinding is for the `workshop` Namespace only.
 
-1. Apply the manifest
+1. Apply the manifest.
 
     ```shell
     kubectl apply -f manifests/worker-rolebinding.yaml
     ```
 
-1. Switch context to `limited`
+1. Switch context to `limited`.
 
     ```shell
     kubectl config use-context limited
     ```
 
-1. Create an `nginx` Deployment
+1. Create an `nginx` Deployment.
 
     ```shell
     kubectl run nginx --image=nginx -n workshop
     ```
 
-1. Check that the Deployment and Pod was created successfully
+1. Check that the Deployment and Pod was created successfully.
 
     ```shell
     kubectl get pods -n workshop
@@ -210,7 +210,7 @@ For the Role to take effect you must bind it to the user.
     nginx-64f497f8fd-kqgzr   1/1     Running   0          18s
     ```
 
-1. Check that the user still can't read nodes in the cluster
+1. Check that the user still can't read nodes in the cluster.
 
     ```shell
     kubectl get nodes
@@ -218,7 +218,7 @@ For the Role to take effect you must bind it to the user.
 
 ## Create a ClusterRole, Assign it to the User and Make Sure it is Enforced
 
-1. Create a `ClusterRole` to list nodes `manifests/cr-node-reader.yaml`
+1. Create a `ClusterRole` to list nodes `manifests/cr-node-reader.yaml`.
 
     ```yaml
     kind: ClusterRole
@@ -231,15 +231,15 @@ For the Role to take effect you must bind it to the user.
       verbs: ["get", "watch", "list"]
     ```
 
-    > Note: Nodes are cluster-wide resources and are not associated with a particular Namespace
+    > Note: Nodes are cluster-wide resources and are not associated with a particular Namespace.
 
-1. Apply the manifest
+1. Apply the manifest.
 
     ```shell
     kubectl apply -f manifests/cr-node-reader.yaml
     ```
 
-1. Bind the `node-reader` ClusterRole to the service account `manifests/crb-node-reader.yaml`
+1. Bind the `node-reader` ClusterRole to the service account `manifests/crb-node-reader.yaml`.
 
     ```yaml
     kind: ClusterRoleBinding
@@ -256,13 +256,13 @@ For the Role to take effect you must bind it to the user.
       apiGroup: rbac.authorization.k8s.io
     ```
 
-1. Apply the manifest
+1. Apply the manifest.
 
     ```shell
     kubectl apply -f manifests/crb-node-reader.yaml
     ```
 
-1. Now verify that user may list nodes
+1. Now verify that user may list nodes.
 
     ```shell
     kubectl config use-context limited
@@ -277,7 +277,7 @@ For the Role to take effect you must bind it to the user.
     gke-gke-workshop-default-pool-5d910404-t38p   Ready    <none>   3h    v1.11.3-gke.18
     ```
 
-1. Switch back to the unrestricted context
+1. Switch back to the unrestricted context.
 
     ```shell
     kubectl config use-context gke-workshop
