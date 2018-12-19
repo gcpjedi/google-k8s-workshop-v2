@@ -169,7 +169,7 @@ In the previous exercise, we manually copied IP addresses to connect Pods. This 
     command: ["app", "-mode=backend", "-run-migrations", "-port=8080", "-db-host=db", "-db-password=very-secret-password" ]
     ```
 
-1. Redeploy the `backend`. Note that `kubectl apply` will not work for us this time, because we are updating the Pod startup command. Use `kuectl delete pod backend` to delete the Pod and then recreate it.
+1. Redeploy the `backend`. Note that `kubectl apply` will not work for us this time, because we are updating the Pod startup command. Use `kubectl delete pod backend` to delete the Pod and then recreate it.
 
 1. Create and deploy a `backend` Service file `manifests/backend-svc.yaml`.
 
@@ -289,7 +289,7 @@ One major problem with our current deployment is that we hardcoded the MySQL roo
 
 1. Redeploy `backend` and `db`. The database Pod should be redeployed first, because the backend creates an empty database on startup and this database will be destroyed if you redeploy the database after the backend.
 
-    > Note: You will not be able to use `kubectl apply` command this time. Instead, you should use `kubectl delete` first and then redeploy pod.
+    > Note: You will not be able to use `kubectl apply` command this time. Instead, you should use `kubectl delete pod` first and then redeploy pod.
 
 1. Refresh the frontend and make sure that the app is still working fine.
 
