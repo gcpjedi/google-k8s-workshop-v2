@@ -99,6 +99,11 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+		} else {
+	    db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", *dbUser, *dbPassword, *dbHost, dbName))
+	    if err != nil {
+			  log.Fatal(err)
+	    }
 		}
 		defer db.Close()
 		backendMode(*port, db, *failPercent)

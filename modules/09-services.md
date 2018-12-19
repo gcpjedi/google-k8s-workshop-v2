@@ -182,7 +182,7 @@ Try the following configurations:
 <details><summary>SOLUTIONS - CLICK ME</summary>
 <p>
 
-NodePort:
+**NodePort:**
 
 ```yaml
 ---
@@ -212,7 +212,7 @@ If you set up firewall rules, you will also be able to curl the backend using th
 curl https://<EXTERNAL-IP>:<NODE-PORT> -k
 ```
 
-LoadBalancer:
+**LoadBalancer:**
 
 ```yaml
 ---

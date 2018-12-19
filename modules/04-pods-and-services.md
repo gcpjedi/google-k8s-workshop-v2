@@ -305,7 +305,7 @@ First, let's verify that the app will fail if we restart the db and don't run mi
 
 1. Delete and recreate the `db` Pod.
 
-1. Open the app UI you should see a database error such as `Error 1146: Table 'mysql.notes' doesn't exist`.
+1. Open the app UI you should see a database error such as `Error 1049: Unknown database 'sample_app'`.
 
     Now let's fix the error by adding an Init Container to the `backend` pod, causing it to run migrations each time before it is started.
 
@@ -321,7 +321,7 @@ First, let's verify that the app will fail if we restart the db and don't run mi
           secretKeyRef:
             name: mysql
             key: password
-      command: ["sh", "-c", "app -mode=backend -run-migrations -port=8080 -db-host=db -db-password=$MYSQL_ROOT_PASSWORD" ]
+      command: ["sh", "-c", "app -run-migrations -port=8080 -db-host=db -db-password=$MYSQL_ROOT_PASSWORD" ]
     ```
 
     > Note: You can append these lines directly to the end of the file. The `initContainers` section should have the same number of spaces as the `containers` section under the `spec` section.
